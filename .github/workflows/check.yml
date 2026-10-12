@@ -1,0 +1,22 @@
+name: check
+
+on: [push, pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  access-script:
+    strategy:
+      matrix:
+        os: [ubuntu-24.04, macos-14]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Check scripts with system Bash
+        run: |
+          /bin/bash --version
+          for script in ceico-compute/scripts/*.sh tests/*.sh; do
+            /bin/bash -n "$script"
+          done
+          /bin/bash tests/check_access.sh
