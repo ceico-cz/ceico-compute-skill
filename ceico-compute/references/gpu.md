@@ -61,8 +61,9 @@ uv-managed Python (not module Python, which is missing on Rocky 10, nor `/usr/bi
 3.6 on the login node):
 
 ```bash
-# once: uv itself
-curl -LsSf https://astral.sh/uv/install.sh | sh        # or: pip install --user uv
+# once: uv itself, from PyPI with a module Python (on the login node of either cluster)
+module load Python/3.12.3-GCCcore-13.3.0 && pip install --user uv && module purge
+# uv lands in ~/.local/bin; check with: ~/.local/bin/uv --version
 # venv with a self-contained Python, usable on Rocky 8 and 10
 uv venv --python 3.12 ~/venvs/torch
 uv pip install --python ~/venvs/torch/bin/python torch torchvision   # CUDA 12.x wheels

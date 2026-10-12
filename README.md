@@ -39,6 +39,7 @@ ceico-compute/
   scripts/check_access.sh  SSH login test: check_access.sh <phoebe|koios> [USER]
                            -> VERDICT: OK | NO_KEY | PERMISSION_DENIED | HOSTKEY_* | UNREACHABLE
   scripts/env_report.sh    live snapshot (partitions, QOS, jobs, software, storage); run on a login node
+  scripts/rsync-exclude    files never copied to the cluster (keys, .env, credentials, venvs, caches)
   references/              access, cluster, software, jobs, gpu, storage, troubleshooting
   templates/               sbatch templates (CPU serial/OpenMP/MPI/array/conda, GPU EESSI/PyTorch, Apptainer)
 ```

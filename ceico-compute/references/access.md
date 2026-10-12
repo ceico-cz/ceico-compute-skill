@@ -71,11 +71,15 @@ Host koios
 ```
 
 `ControlMaster` makes the many short `ssh phoebe '…'` / `ssh koios '…'` calls of this workflow fast.
+While a master connection is open (here up to 10 minutes after the last use), any program
+running as the user on the local machine can open new sessions through its socket without the
+key. That is fine on a personal laptop; on a shared machine leave out the three `Control*`
+lines. `ssh -O exit phoebe` closes the master connection early.
 
 ## File transfer
 
 ```bash
-rsync -av --exclude .git --exclude __pycache__ ./ phoebe:jobs/<name>/   # upload (or koios:)
+rsync -av --exclude-from=<skill-dir>/scripts/rsync-exclude ./ phoebe:jobs/<name>/   # upload (or koios:)
 rsync -av phoebe:jobs/<name>/results/ ./results/                       # download
 scp file phoebe:jobs/<name>/
 ```

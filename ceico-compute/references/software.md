@@ -85,7 +85,7 @@ Pick one approach and stick to it per project.
    A venv built with module Python only works with that same module loaded, and only on
    Rocky 8 nodes.
 2. **uv** (fast, any Python version, works on GPU nodes too): install once with
-   `pip install --user uv` (or the standalone installer), then
+   `module load Python/3.12.3-GCCcore-13.3.0 && pip install --user uv` (into `~/.local/bin`), then
    `uv venv --python 3.12 ~/venvs/<name>; uv pip install --python ~/venvs/<name> torch …`.
    uv-managed Pythons are self-contained, so one venv can serve both Rocky 8 and 10 for
    pure-Python + wheels. Docs: https://hpc.ceico.cz/software/python-uv/
@@ -133,8 +133,8 @@ Koios (Rocky 9) has its own, smaller tree `/cvmfs/c9.phoebe.lan` and none of the
 
 - No `system` stack: **no Miniforge3, CUDA, Mathematica or MATLAB modules**, and no
   `/cvmfs/apptainer.phoebe.lan` images.
-- conda: install Miniforge into the home directory once, then source it in every job
-  (https://hpc.ceico.cz/software/conda/#on-koios):
+- conda: install Miniforge into the home directory once (ask the user first), then source it
+  in every job (https://hpc.ceico.cz/software/conda/#on-koios):
   ```bash
   wget https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh
   bash Miniforge3-Linux-x86_64.sh -b -p $HOME/miniforge3

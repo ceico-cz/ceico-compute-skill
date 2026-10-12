@@ -13,6 +13,7 @@ module purge
 module load <MODULES>
 
 # one line of params.txt per task, e.g. "--seed 7 --alpha 0.1"
-PARAMS=$(sed -n "${SLURM_ARRAY_TASK_ID}p" params.txt)
-echo "task $SLURM_ARRAY_TASK_ID on $(hostname): $PARAMS"
-<COMMAND> $PARAMS --out results/task_${SLURM_ARRAY_TASK_ID}   # e.g. python run.py $PARAMS
+# split on whitespace into an array (no glob expansion); no quoting inside params.txt
+read -ra PARAMS <<< "$(sed -n "${SLURM_ARRAY_TASK_ID}p" params.txt)"
+echo "task $SLURM_ARRAY_TASK_ID on $(hostname): ${PARAMS[*]}"
+<COMMAND> "${PARAMS[@]}" --out "results/task_${SLURM_ARRAY_TASK_ID}"   # e.g. python run.py "${PARAMS[@]}"

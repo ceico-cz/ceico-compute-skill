@@ -18,10 +18,19 @@ case "${1:-}" in
     *.*) HOST="$1"; USER_ARG="${2:-}" ;;
     *) HOST=phoebe.fzu.cz; USER_ARG="${1:-}" ;;
 esac
-EXPECTED_FP="${FINGERPRINTS[$HOST]:-}"
-TARGET="${USER_ARG:+$USER_ARG@}$HOST"
-
 verdict() { echo "VERDICT: $1"; exit "${2:-1}"; }
+
+# Reject anything that could be parsed as an ssh option or isn't a plain name.
+if [[ ! "$HOST" =~ ^[A-Za-z0-9][A-Za-z0-9.-]*$ ]]; then
+    echo "invalid host name: $HOST"; verdict UNKNOWN_ERROR
+fi
+if [ -n "$USER_ARG" ] && [[ ! "$USER_ARG" =~ ^[A-Za-z_][A-Za-z0-9._-]{0,31}$ ]]; then
+    echo "invalid user name: $USER_ARG"; verdict UNKNOWN_ERROR
+fi
+
+EXPECTED_FP="${FINGERPRINTS[$HOST]:-}"
+KNOWN_HOSTS="$HOME/.ssh/known_hosts"
+TARGET="${USER_ARG:+$USER_ARG@}$HOST"
 
 echo "target: $TARGET"
 
@@ -37,24 +46,30 @@ if [ ${#keys[@]} -eq 0 ]; then have_key=no; else have_key="${keys[*]}"; fi
 echo "local keys: $have_key"
 
 # 2. Verify the server's host key independently before trusting it on first contact.
-scanned=$(ssh-keyscan -T 10 -t ed25519 "$HOST" 2>/dev/null | ssh-keygen -lf - 2>/dev/null | awk '{print $2}' | head -1)
+scan_line=$(ssh-keyscan -T 10 -t ed25519 "$HOST" 2>/dev/null | grep -v '^#' | head -1)
+scanned=$(ssh-keygen -lf - <<<"$scan_line" 2>/dev/null | awk '{print $2}')
 if [ -z "$scanned" ]; then
     echo "host key scan: no answer from $HOST:22"
     verdict UNREACHABLE
 fi
 if [ -z "$EXPECTED_FP" ]; then
     echo "host key: $scanned (unknown host: no expected fingerprint, using known_hosts only)"
-    hostkey_opt="StrictHostKeyChecking=yes"
 else
     echo "host key: $scanned (expected $EXPECTED_FP)"
     [ "$scanned" = "$EXPECTED_FP" ] || verdict HOSTKEY_MISMATCH
-    # accept-new is safe here: the fingerprint was just verified
-    hostkey_opt="StrictHostKeyChecking=accept-new"
+    # First contact: record exactly the key that was just verified. Existing entries are
+    # never changed; if one is stale, ssh below fails with HOSTKEY_CHANGED.
+    if ! ssh-keygen -F "$HOST" -f "$KNOWN_HOSTS" >/dev/null 2>&1; then
+        mkdir -p "$(dirname "$KNOWN_HOSTS")" && chmod 700 "$(dirname "$KNOWN_HOSTS")"
+        echo "$scan_line" >> "$KNOWN_HOSTS"
+        echo "known_hosts: added the verified ed25519 key of $HOST to $KNOWN_HOSTS"
+    fi
 fi
 
-# 3. Real login, non-interactive.
+# 3. Real login, non-interactive; the host key must match known_hosts.
 err=$(mktemp)
-out=$(ssh -o BatchMode=yes -o ConnectTimeout=15 -o "$hostkey_opt" "$TARGET" \
+out=$(ssh -o BatchMode=yes -o ConnectTimeout=15 -o StrictHostKeyChecking=yes \
+    -o UserKnownHostsFile="$KNOWN_HOSTS" -- "$TARGET" \
     'echo CEICO_OK; echo "user: $(id -un)"; echo "host: $(hostname)"; echo "home: $HOME";
      echo "slurm association (account | qos | default qos):";
      sacctmgr -n -P show assoc user="$(id -un)" format=account,qos,defaultqos 2>/dev/null | sed "s/^/  /"' \

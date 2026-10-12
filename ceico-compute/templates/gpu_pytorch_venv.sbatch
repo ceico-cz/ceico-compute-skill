@@ -14,8 +14,9 @@ set -euo pipefail
 source <VENV>/bin/activate           # e.g. ~/venvs/torch
 
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
-export TMPDIR=/tmp/$USER/$SLURM_JOB_ID
-mkdir -p "$TMPDIR"
+# private node-local scratch (mode 700, unpredictable name); stops outside a Slurm job
+TMPDIR=$(mktemp -d "/tmp/${USER}.${SLURM_JOB_ID:?submit with sbatch}.XXXXXX")
+export TMPDIR
 trap 'rm -rf "$TMPDIR"' EXIT
 
 echo "job $SLURM_JOB_ID on $(hostname), CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES, started $(date -Is)"

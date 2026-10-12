@@ -4,7 +4,8 @@ Docs: https://hpc.ceico.cz/slurm/batch-jobs/, https://hpc.ceico.cz/slurm/interac
 
 ## Job directory convention
 
-Keep each run in its own directory on the cluster, e.g. `~/jobs/<name>/` containing the code (or a
+Keep each run in its own directory on the cluster, e.g. `~/jobs/<name>/` (mode `700`: some
+home directories are readable by others, and new files on Phoebe are group-writable by default) containing the code (or a
 checkout), `job.sbatch`, inputs, and outputs `<jobname>-<jobid>.out`. Submit from there —
 Slurm's working directory is the submit directory.
 

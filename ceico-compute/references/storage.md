@@ -23,16 +23,21 @@ Use for I/O-heavy work (many small files, temporary files, databases). Every tem
 on Koios `/tmp` is already private per job, and the same lines work there unchanged:
 
 ```bash
-export TMPDIR=/tmp/$USER/$SLURM_JOB_ID
-mkdir -p "$TMPDIR"
+# private (mode 700), unpredictable name; ${SLURM_JOB_ID:?} stops the script outside a job
+TMPDIR=$(mktemp -d "/tmp/${USER}.${SLURM_JOB_ID:?submit with sbatch}.XXXXXX")
+export TMPDIR
 trap 'rm -rf "$TMPDIR"' EXIT
 cp -r "$SLURM_SUBMIT_DIR/input" "$TMPDIR/"     # stage in
 cd "$TMPDIR" && <run>                          # work locally
 cp -r results "$SLURM_SUBMIT_DIR/"             # stage out before the trap cleans up
 ```
 
-Multi-node jobs: each node has its own `/tmp`; create/stage per node with
-`srun --ntasks-per-node=1 mkdir -p "$TMPDIR"`.
+Don't use a fixed path like `/tmp/$USER/...`: on Phoebe `/tmp` is shared by all jobs on a node,
+so another user could create that directory first and read or replace the files. And without
+the `:?` guard, running the script outside Slurm would make the trap delete all of `/tmp/$USER`.
+
+Multi-node jobs: each node has its own `/tmp`; let every task create its own directory with
+`mktemp -d` inside the program or a wrapper script started by `srun`.
 
 ## Copying between the clusters
 

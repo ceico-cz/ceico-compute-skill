@@ -11,9 +11,9 @@ set -euo pipefail
 module purge
 module load <MODULES>                # e.g. Python/3.12.3-GCCcore-13.3.0 (one stack only)
 
-# node-local scratch for temporary files; removed when the job ends
-export TMPDIR=/tmp/$USER/$SLURM_JOB_ID
-mkdir -p "$TMPDIR"
+# private node-local scratch (mode 700, unpredictable name); stops outside a Slurm job
+TMPDIR=$(mktemp -d "/tmp/${USER}.${SLURM_JOB_ID:?submit with sbatch}.XXXXXX")
+export TMPDIR
 trap 'rm -rf "$TMPDIR"' EXIT
 
 echo "job $SLURM_JOB_ID on $(hostname) started $(date -Is)"
