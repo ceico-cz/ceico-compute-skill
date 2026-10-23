@@ -32,12 +32,15 @@ seff ID
 | `module: command not found` | non-login shell without Lmod | first line `#!/bin/bash` (sbatch uses a login-like env); or `source /etc/profile.d/lmod.sh` |
 | `Lmod has detected the following error: … unknown module` on a GPU node | Phoebe stacks aren't available on `rocky10` | use EESSI / NVHPC / venv (see [gpu.md](gpu.md)) |
 | `These module(s) or extension(s) exist but cannot be loaded as requested` | dependency from a different stack / toolchain needed first | `module spider NAME/VERSION` and load what it lists; don't mix stacks |
-| `GLIBC_2.xx not found`, `libfoo.so: cannot open shared object` | binary or venv built on another cluster / node type (Phoebe Rocky 8 vs Phoebe GPU Rocky 10 vs Koios Rocky 9) | rebuild where it runs; use uv-managed Python for venvs |
+| `GLIBC_2.xx not found`, `libfoo.so: cannot open shared object` | binary or venv built on another cluster / node type (Phoebe Rocky 8 vs Koios Rocky 9 vs the Rocky 10 GPU nodes of both) | rebuild where it runs; use uv-managed Python for venvs |
 | `module: Miniforge3` / `CUDA` / `Mathematica` unknown on Koios | Koios has no `system` stack | own Miniforge in `~/miniforge3`; GPU and Mathematica work on Phoebe |
 | file not found that exists "on the cluster" | it is in the other cluster's home | copy it ([storage.md](storage.md#copying-between-the-clusters)) |
 | `libcudnn…` / `libcublas…` not found with EESSI | EESSI doesn't set `LD_LIBRARY_PATH` | link with RPATH (`-Xlinker --disable-new-dtags -Xlinker -rpath=…`), see [software.md](software.md#eessi-cvmfssoftwareeessiio) |
-| `torch.cuda.is_available() == False` | no `--gres`, CPU-only wheel, or job on a CPU partition | `--partition=rocky10 --gres=gpu:a100:1`; reinstall the CUDA wheel |
-| `CUDA error: no kernel image is available` | built without `sm_80` | compile with `-arch=sm_80` |
+| `torch.cuda.is_available() == False` | no `--gres`, CPU-only wheel, or job on a CPU partition | `--partition=rocky10 --gres=gpu:a100:1` (Koios: `--partition=gpu --gres=gpu:p100:1`); reinstall the CUDA wheel |
+| `CUDA error: no kernel image is available` | built without the GPU's architecture (A100 `sm_80`, P100 `sm_60`), or an EESSI GPU app / PyTorch build without `sm_60` on Koios | compile with `-arch=sm_80` / `-arch=sm_60`; on the P100 see [gpu.md](gpu.md#koios-p100-nodes-gpu) |
+| `nvcc fatal: Unsupported gpu architecture 'sm_60'` | CUDA 13 compiler (NVHPC default, EESSI 2026.06) on Koios P100 | use CUDA 12.x: NVHPC `…/26.5/cuda/12.9/bin` (template `gpu_koios_p100`) or EESSI 2025.06 `CUDA/12.9.1` |
+| `CUDA/… cannot be loaded as requested` on Koios `gpu` | EESSI has no cc60 (P100) builds | use NVHPC CUDA 12.9; only if cuDNN is needed: `export EESSI_ACCELERATOR_TARGET_OVERRIDE=accel/nvidia/cc70` before the EESSI init (toolkit only) |
+| `module: … unknown` on Koios `gpu` nodes | `c9` tree isn't available on the Rocky 10 GPU nodes | EESSI or own envs, see [gpu.md](gpu.md#koios-p100-nodes-gpu) |
 | `CUDA out of memory` | 80 GB per GPU exceeded | smaller batch, mixed precision, more GPUs |
 | MPI hangs / `PMIx` errors | `mpirun` with wrong launcher, or mixed MPI | launch with `srun`, single toolchain, `module purge` first |
 | Very slow, `seff` CPU efficiency ≪ 100% | threads not matching allocation, or I/O bound | set `OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK`; stage data to `/tmp` |
@@ -56,7 +59,7 @@ seff ID
 | `QOSMaxCpuPerUserLimit`, `AssocGrp*` | user's / group's CPU or GPU cap reached | wait; ask the admin if a higher limit is justified |
 | `ReqNodeNotAvail`, `PartitionDown`, `PartitionNodeLimit` | wrong partition (Phoebe `gpu`, `gpu_int`, `project001`) or nodes down / in maintenance | use `rocky10` / `cpu`; check `sinfo -R` |
 | `AccountNotAllowed`, `InvalidAccount` (submit error) | reserved partition (`project001`, `slurm_test`) | use `cpu` / `cpu_int` |
-| `BadConstraints` / GPU request on Koios | Koios has no GPUs in Slurm | GPU jobs go to Phoebe `rocky10` |
+| `BadConstraints` / GPU request on Koios | GPUs requested on a CPU partition, or `a100` on Koios | Koios: `--partition=gpu --gres=gpu:p100:N` (N ≤ 2); A100s are on Phoebe `rocky10` |
 | `PartitionTimeLimit` | `--time` > partition max | lower `--time` |
 | `BadConstraints`, `InvalidQOS` | unsatisfiable request (e.g. GPUs on a CPU partition, > 8 GPUs per node) | fix the request |
 | `MaxMemPerLimit` / never starts on GPU node | `--mem` too large (> ~2 TB) or memory already allocated by others | lower `--mem` |

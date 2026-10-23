@@ -3,7 +3,7 @@
 A [Claude skill](https://docs.claude.com/en/docs/agents-and-tools/agent-skills/overview) that
 helps users run their codes on the CEICO HPC clusters at FZU Prague:
 **Phoebe** (`phoebe.fzu.cz`, AMD EPYC nodes and A100 GPUs) and **Koios** (`koios1.fzu.cz`,
-Xeon CPU nodes). With it, Claude:
+Xeon CPU nodes and P100 GPUs). With it, Claude:
 
 - checks that SSH key login works and explains how to fix it when it doesn't;
 - picks the cluster, the Slurm partition and the software: Lmod stacks, EESSI, NVHPC,
@@ -45,7 +45,7 @@ ceico-compute/
   scripts/env_report.sh    live snapshot (partitions, QOS, jobs, software, storage); run on a login node
   scripts/rsync-exclude    files never copied to the cluster (keys, .env, credentials, venvs, caches)
   references/              access, cluster, software, jobs, gpu, storage, troubleshooting
-  templates/               sbatch templates (CPU serial/OpenMP/MPI/array/conda, GPU EESSI/PyTorch, Apptainer)
+  templates/               sbatch templates (CPU serial/OpenMP/MPI/array/conda, GPU EESSI/PyTorch/Koios P100, Apptainer)
 ```
 
 ## Releasing
@@ -72,7 +72,10 @@ Templates were tested with real jobs:
 - On Phoebe: serial, OpenMP, 2-node MPI, array, conda and Apptainer (CPU). The GPU templates
   have only been syntax-checked.
 - On Koios: serial, OpenMP and Apptainer (CPU, `docker://` image) on `small_int`, and
-  2-node MPI (`foss/2024a`, `srun`) on `cpu`.
+  2-node MPI (`foss/2024a`, `srun`) on `cpu`; `gpu_koios_p100` (NVHPC CUDA 12.9,
+  `nvcc -arch=sm_60`, cuBLAS, cuFFT) on `gpu`, 2026-10-23. Also checked there on the P100: EESSI
+  `CUDA/12.9.1` with the cc70 override, `nvc++ -cuda` and OpenACC; PyTorch `cu126` works,
+  `cu128` doesn't (no `sm_60`).
 
 Known inconsistencies in hpc-docs, which the skill works around:
 - `getting-started/ondemand/jupyterlab.md` still offers the dead Phoebe `gpu` / `gpu_int` partitions.

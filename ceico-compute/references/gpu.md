@@ -1,8 +1,17 @@
-# GPU jobs on Phoebe (`rocky10`)
+# GPU jobs: Phoebe `rocky10` (A100) and Koios `gpu` (P100)
 
-GPU work runs only on Phoebe: Koios has no GPUs in Slurm (its P100 node is dedicated to a
-project). If the user's files are on Koios, copy them to Phoebe first
-([storage.md](storage.md#copying-between-the-clusters)).
+| | Phoebe `rocky10` | Koios `gpu` |
+|---|---|---|
+| Nodes | `gpu1`, `gpu2`: 8× A100 80 GB each | `gpu3`, `gpu4`: 2× P100 16 GB each |
+| Compute capability | 8.0 (`sm_80`) | 6.0 (`sm_60`) |
+| Request | `--gres=gpu:a100:N` (1–8) | `--gres=gpu:p100:N` (1–2) |
+| CUDA | 12.x and 13.x | **12.x only** (CUDA 13 dropped `sm_60`) |
+| Software | EESSI (GPU builds), NVHPC, `/usr/local/cuda`, venvs, Apptainer | NVHPC CUDA 12.9 (no cuDNN), PyTorch `cu126`, EESSI CPU builds |
+
+Default to Phoebe. Use Koios only when the user asks, the data is on Koios, or the Phoebe
+GPUs are full and the code still supports the P100 — see [Koios P100 nodes](#koios-p100-nodes-gpu).
+Moving files between the clusters: [storage.md](storage.md#copying-between-the-clusters).
+The rest of this file up to that section is about Phoebe.
 
 Docs: https://hpc.ceico.cz/slurm/gpu-jobs/, https://hpc.ceico.cz/slurm/gpu-profiling/
 
@@ -83,7 +92,90 @@ torchrun --standalone --nproc_per_node=$SLURM_GPUS_ON_NODE train.py
 Data loading: `num_workers` ≈ CPUs per GPU − 1; stage many-small-file datasets into
 `/tmp/$USER/$SLURM_JOB_ID` first (see [storage.md](storage.md)).
 
-## Profiling
+## CuPy with EESSI Python
+
+EESSI has no CuPy module. Use EESSI's Python and NumPy with a venv and the pip wheel; the
+`[ctk]` extra installs the CUDA 12 libraries as pip packages, so no CUDA module is needed and
+the same recipe is meant for the Phoebe A100 and the Koios P100 nodes (CuPy compiles its kernels
+at run time for the GPU it finds). Build the venv once on the login node of the cluster where it
+will run (the login nodes have the same EESSI CPU target as that cluster's GPU nodes):
+
+```bash
+source /cvmfs/software.eessi.io/versions/2025.06/init/lmod/bash
+module load Python/3.13.5-GCCcore-14.3.0 SciPy-bundle/2025.07-gfbf-2025b
+python -m venv --system-site-packages ~/venvs/cupy-eessi
+source ~/venvs/cupy-eessi/bin/activate
+pip install 'cupy-cuda12x[ctk]'          # ~2.8 GB, mostly the NVIDIA wheels
+pip check                                # must report no broken requirements
+```
+
+In the job script (template `gpu_eessi.sbatch`, or on Koios `gpu_koios_p100.sbatch` with the
+NVHPC lines replaced by these) repeat the `source` and `module load` lines, then activate the venv.
+Use the 2025b `SciPy-bundle` (NumPy 2.3): with the older `2024.05` (NumPy 1.26) pip installs
+its own NumPy 2.x into the venv, which hides EESSI's and breaks its SciPy.
+Tested on Koios P100 with CuPy 14.2.0 (matmul, FFT, `ElementwiseKernel`), 2026-10-23; not yet
+run on Phoebe.
+
+## Koios P100 nodes (`gpu`)
+
+- Nodes `gpu3`, `gpu4`: 2× Tesla P100-SXM2 16 GB each (compute capability 6.0), 1× Xeon Gold
+  6130 with 32 cores (no SMT), 125 GB RAM, 81 GB `/tmp` **shared by all jobs on the node**
+  (use the `mktemp` pattern from [storage.md](storage.md)). Rocky Linux 10.2, driver 580
+  (the last driver branch that supports Pascal GPUs).
+- Partition `gpu`, max 9-01:03:00, default memory 3 GB/CPU. About 16 CPUs per GPU.
+- The Koios `c9` modules are **not** available (`MODULEPATH` still names them, but the
+  repository isn't mounted). `/usr/local/cuda` doesn't exist. Python: `/usr/bin/python3` 3.12
+  or a uv-managed Python.
+- **CUDA 12.x only**: CUDA 13 compilers fail with `Unsupported gpu architecture 'sm_60'`.
+  Compile with `-arch=sm_60` (nvcc 12.x warns that pre-`sm_75` targets are deprecated;
+  `-Wno-deprecated-gpu-targets` silences it).
+- Template: `gpu_koios_p100.sbatch`.
+
+CUDA toolkit, two ways:
+
+1. **NVIDIA HPC SDK 26.5, CUDA 12.9 (default; template `gpu_koios_p100.sbatch`)** — the SDK's
+   default `nvcc` (also in the `nvhpc-hpcx-cuda12` module) is CUDA 13.2 and fails for `sm_60`,
+   so put the bundled CUDA 12.9 first in `PATH`. The math libraries (cuBLAS, cuFFT, cuSOLVER,
+   cuSPARSE, cuRAND) are in a separate directory:
+   ```bash
+   NVHPC=/opt/nvidia/hpc_sdk/Linux_x86_64/26.5
+   export CUDA_HOME=$NVHPC/cuda/12.9 CUDA_MATH=$NVHPC/math_libs/12.9
+   export PATH=$CUDA_HOME/bin:$PATH CPATH=$CUDA_MATH/include LIBRARY_PATH=$CUDA_MATH/lib64
+   nvcc -arch=sm_60 -Xlinker -rpath=$CUDA_HOME/lib64:$CUDA_MATH/lib64 -o app app.cu -lcublas
+   ```
+   NCCL is in `$NVHPC/comm_libs/12.9/nccl`; **cuDNN is not included**. With the `nvhpc` module,
+   `nvc++ -cuda -gpu=cc60` and OpenACC `-acc -gpu=cc60` also work.
+2. **EESSI CUDA toolkit (when cuDNN is needed)** — EESSI has GPU builds only for cc70 and
+   newer. On the P100 it selects `accel/nvidia/cc60`, but no modules exist for that target, so
+   `module load CUDA/…` fails with "cannot be loaded as requested". Overriding the target to
+   the closest one, `cc70`, makes the toolkit modules loadable:
+   ```bash
+   export EESSI_ACCELERATOR_TARGET_OVERRIDE=accel/nvidia/cc70
+   source /cvmfs/software.eessi.io/versions/2025.06/init/lmod/bash
+   module load CUDA/12.8.0 cuDNN/9.10.1.4-CUDA-12.8.0   # load both; cuDNN doesn't pull in CUDA
+   nvcc -arch=sm_60 -Xlinker --disable-new-dtags \
+        -Xlinker -rpath=$EBROOTCUDNN/lib:$EBROOTCUDA/lib64 -o app app.cu -lcudnn
+   ```
+   Tested on the P100 (`cudnnCreate` and a ReLU forward pass). `cuDNN/9.15.0.57-CUDA-12.9.1`
+   refuses to load ("not supported for … Compute Capabilities: ['7.0']"); `CUDA/12.9.1` alone
+   loads fine.
+   The override also makes EESSI's GPU *applications* (GROMACS, LAMMPS, …) loadable, but they
+   are built for `sm_70`+ and won't run on the P100. Use the toolkit only; for applications use their CPU builds (without the override) or Phoebe. EESSI 2026.06
+   has only CUDA 13: use 2025.06.
+
+PyTorch on the P100: only the **CUDA 12.6** builds still contain `sm_60`. The default PyPI
+wheel and the `cu128` builds and newer don't (`torch.cuda.is_available()` is `True`, but every
+kernel fails with `no kernel image is available`). Tested: `torch 2.14.1+cu126` works.
+
+```bash
+uv venv --python 3.12 ~/venvs/torch-p100      # on the Koios login node; own venv, not the Phoebe one
+uv pip install --python ~/venvs/torch-p100/bin/python torch --index-url https://download.pytorch.org/whl/cu126
+```
+
+Use it with `gpu_pytorch_venv.sbatch`, changing the partition to `gpu` and `--gres` to
+`gpu:p100:N`. Check: `python -c "import torch; print(torch.cuda.get_arch_list())"` must list `sm_60`.
+
+## Profiling (Phoebe)
 
 - `nsys profile --trace=cuda,nvtx,osrt -o timeline ./app` — no constraint needed.
 - `ncu` and `nsys --gpu-metrics-devices=all` need `#SBATCH --constraint=nsight` (stops DCGM

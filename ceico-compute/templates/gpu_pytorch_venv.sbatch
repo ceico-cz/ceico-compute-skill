@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=<JOBNAME>
-#SBATCH --partition=rocky10          # Phoebe only
+#SBATCH --partition=rocky10          # Phoebe A100 (Koios P100: gpu + --gres=gpu:p100:N, torch from the cu126 index)
 #SBATCH --time=<HH:MM:SS>
 #SBATCH --gres=gpu:a100:<NGPUS>      # 1-8 per node
 #SBATCH --ntasks=1

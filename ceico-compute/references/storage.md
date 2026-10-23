@@ -7,7 +7,7 @@ Docs: https://hpc.ceico.cz/systems/storage/
 | Home | `/home/<user>` | BeeGFS, ~218 TB shared by all | No quota, but **ask the admin before storing large data** (≳ 1 TB). **Each cluster has its own home**: files on Phoebe don't appear on Koios. Visible on all nodes of the cluster. |
 | Project space | `/mnt/proj/pNNN_<name>` | NFS, 1 TB total for all projects | Group-shared (setgid), **the same directories on Phoebe and Koios**. Request a directory from the admin. Good for shared envs and small shared data. |
 | Node-local scratch, Phoebe | `/tmp` on each node | ~1.7 TB (CPU), ~3 TB (GPU), ~1 TB (small) NVMe | Shared by all jobs on the node, **not** cleaned at job end; files unused for 10 days are deleted. `$TMPDIR` is not set. |
-| Node-local scratch, Koios | `/tmp` on each node | ~1.7 TB NVMe | **Private to each job** and deleted when the job ends. |
+| Node-local scratch, Koios | `/tmp` on each node | ~1.7 TB NVMe (GPU nodes 81 GB) | CPU nodes: **private to each job** and deleted when the job ends. GPU nodes `gpu3`, `gpu4`: **shared** by all jobs on the node, as on Phoebe — use the `mktemp` pattern below. |
 | Shared scratch, Koios only | `/mnt/shared-scratch` | BeeGFS | Visible on all Koios nodes (multi-node jobs, passing data between jobs). Not cleaned automatically, no backup — delete your files when done. |
 | Software | `/cvmfs/*` | read-only | see [software.md](software.md) |
 

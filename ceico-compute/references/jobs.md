@@ -22,6 +22,7 @@ Copy from `templates/` and fill every `<PLACEHOLDER>`:
 | `conda.sbatch` | conda env on CPU nodes |
 | `gpu_eessi.sbatch` | CUDA code/apps from EESSI on `rocky10` |
 | `gpu_pytorch_venv.sbatch` | PyTorch (or other pip GPU stack) in a uv venv on `rocky10` |
+| `gpu_koios_p100.sbatch` | CUDA 12.x code on the Koios P100 nodes (`gpu`) |
 | `apptainer.sbatch` | container image, CPU or GPU |
 
 Common header choices:
@@ -53,7 +54,8 @@ Common header choices:
 
 ```bash
 srun --partition=cpu_int --cpus-per-task=4 --mem=8G --time=02:00:00 --pty bash
-srun --partition=rocky10 --gres=gpu:a100:1 --cpus-per-task=8 --mem=64G --time=02:00:00 --pty bash
+srun --partition=rocky10 --gres=gpu:a100:1 --cpus-per-task=8 --mem=64G --time=02:00:00 --pty bash   # Phoebe
+srun --partition=gpu --gres=gpu:p100:1 --cpus-per-task=8 --mem=32G --time=02:00:00 --pty bash       # Koios
 ```
 
 Koios `cpu_int` has only 2 nodes; there `cpu` works for interactive `srun` too.
@@ -63,7 +65,28 @@ agent shell (no TTY), prefer a short batch job, or `srun … bash -c '<commands>
 
 ```bash
 ssh phoebe 'cd ~/jobs/x && srun -p rocky10 --gres=gpu:a100:1 -c 8 --mem=32G -t 00:20:00 bash -c "nvidia-smi && make"'
+# longer command sequences: pipe a script to the job's shell (srun forwards stdin)
+ssh phoebe 'cd ~/jobs/x && srun -p cpu_int -c 4 --mem=8G -t 00:20:00 bash -s' < probe.sh
 ```
+
+Several steps in one allocation (user's terminal): `salloc` reserves resources and opens a
+shell on the login node; each `srun` inside then runs on the allocated node, and `exit`
+releases it.
+
+```bash
+salloc --partition=cpu_int --cpus-per-task=4 --mem=8G --time=02:00:00
+srun hostname          # runs on the compute node
+srun --pty bash        # or open a shell there
+exit                   # end the allocation
+```
+
+Notes:
+- The interactive job's working directory is the directory where `srun` was started;
+  modules loaded on the login node are inherited, so `module purge` first on the GPU nodes
+  (Rocky 10, no Phoebe stacks or Koios `c9`).
+- Inside, `$SLURM_JOB_ID`, `$SLURM_CPUS_PER_TASK` and `CUDA_VISIBLE_DEVICES` are set as in
+  batch jobs. `squeue --me` shows the session as a running job; it counts against limits
+  until `exit`, so don't leave idle sessions open for days.
 
 ## Submitting
 
