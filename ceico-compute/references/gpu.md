@@ -92,6 +92,30 @@ torchrun --standalone --nproc_per_node=$SLURM_GPUS_ON_NODE train.py
 Data loading: `num_workers` ≈ CPUs per GPU − 1; stage many-small-file datasets into
 `/tmp/$USER/$SLURM_JOB_ID` first (see [storage.md](storage.md)).
 
+## CuPy with EESSI Python
+
+EESSI has no CuPy module. Use EESSI's Python and NumPy with a venv and the pip wheel; the
+`[ctk]` extra installs the CUDA 12 libraries as pip packages, so no CUDA module is needed and
+the same recipe is meant for the Phoebe A100 and the Koios P100 nodes (CuPy compiles its kernels
+at run time for the GPU it finds). Build the venv once on the login node of the cluster where it
+will run (the login nodes have the same EESSI CPU target as that cluster's GPU nodes):
+
+```bash
+source /cvmfs/software.eessi.io/versions/2025.06/init/lmod/bash
+module load Python/3.13.5-GCCcore-14.3.0 SciPy-bundle/2025.07-gfbf-2025b
+python -m venv --system-site-packages ~/venvs/cupy-eessi
+source ~/venvs/cupy-eessi/bin/activate
+pip install 'cupy-cuda12x[ctk]'          # ~2.8 GB, mostly the NVIDIA wheels
+pip check                                # must report no broken requirements
+```
+
+In the job script (template `gpu_eessi.sbatch`, or on Koios `gpu_koios_p100.sbatch` with the
+NVHPC lines replaced by these) repeat the `source` and `module load` lines, then activate the venv.
+Use the 2025b `SciPy-bundle` (NumPy 2.3): with the older `2024.05` (NumPy 1.26) pip installs
+its own NumPy 2.x into the venv, which hides EESSI's and breaks its SciPy.
+Tested on Koios P100 with CuPy 14.2.0 (matmul, FFT, `ElementwiseKernel`), 2026-10-23; not yet
+run on Phoebe.
+
 ## Koios P100 nodes (`gpu`)
 
 - Nodes `gpu3`, `gpu4`: 2× Tesla P100-SXM2 16 GB each (compute capability 6.0), 1× Xeon Gold
@@ -122,7 +146,7 @@ CUDA toolkit, two ways:
    NCCL is in `$NVHPC/comm_libs/12.9/nccl`; **cuDNN is not included**. With the `nvhpc` module,
    `nvc++ -cuda -gpu=cc60` and OpenACC `-acc -gpu=cc60` also work.
 2. **EESSI CUDA toolkit (when cuDNN is needed)** — EESSI has GPU builds only for cc70 and
-   newer. On the P100 its detection finds `cc60`, selects no accelerator, and
+   newer. On the P100 it selects `accel/nvidia/cc60`, but no modules exist for that target, so
    `module load CUDA/…` fails with "cannot be loaded as requested". Overriding the target to
    the closest one, `cc70`, makes the toolkit modules loadable:
    ```bash
@@ -136,8 +160,7 @@ CUDA toolkit, two ways:
    refuses to load ("not supported for … Compute Capabilities: ['7.0']"); `CUDA/12.9.1` alone
    loads fine.
    The override also makes EESSI's GPU *applications* (GROMACS, LAMMPS, …) loadable, but they
-   are built for `sm_70`+ and fail on the P100 (`no kernel image is available`). Use the toolkit
-   only; for applications use their CPU builds (without the override) or Phoebe. EESSI 2026.06
+   are built for `sm_70`+ and won't run on the P100. Use the toolkit only; for applications use their CPU builds (without the override) or Phoebe. EESSI 2026.06
    has only CUDA 13: use 2025.06.
 
 PyTorch on the P100: only the **CUDA 12.6** builds still contain `sm_60`. The default PyPI

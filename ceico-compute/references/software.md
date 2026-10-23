@@ -101,7 +101,10 @@ Pick one approach and stick to it per project.
    On GPU nodes `Miniforge3` module is not available — call the env's binaries directly
    (`~/.conda/envs/<name>/bin/python`) or `source <miniforge-install>/etc/profile.d/conda.sh`
    from a user-installed Miniforge in `~`. Docs: https://hpc.ceico.cz/software/conda/
-4. PyTorch, TensorFlow, JAX, CuPy are **not** modules: pip/uv wheels (bundle CUDA) — see
+4. **EESSI Python** (any node, including the GPU nodes): `module load Python/… SciPy-bundle/…` from
+   EESSI, then a `--system-site-packages` venv for pip packages — recipe in
+   [gpu.md](gpu.md#cupy-with-eessi-python). Build it on the cluster where it runs.
+5. PyTorch, TensorFlow, JAX, CuPy are **not** modules: pip/uv wheels (bundle CUDA) — see
    [gpu.md](gpu.md); or the Apptainer images below.
 
 Create environments on the login node (I/O-bound, fine) or in a `cpu_int` job if the build is heavy.
