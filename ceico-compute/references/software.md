@@ -6,7 +6,8 @@ Where software comes from depends on the cluster and node type:
 |---|---|
 | Phoebe: login node, `cpu`, `cpu_int`, `preempt`, `small_int` (Rocky 8) | Phoebe stacks `2023a`–`2026a` + `system` (default `MODULEPATH`), legacy `/sw/phoebe/*` |
 | Phoebe `rocky10` GPU nodes (Rocky 10) | **none by default** → EESSI, NVIDIA HPC SDK, `/usr/local/cuda`, own Python envs, Apptainer |
-| Koios: login and all nodes (Rocky 9) | Koios tree `c9` (default `MODULEPATH`); EESSI; own installs — see [Koios](#koios) |
+| Koios: login and CPU nodes (Rocky 9) | Koios tree `c9` (default `MODULEPATH`); EESSI; own installs — see [Koios](#koios) |
+| Koios `gpu` P100 nodes (Rocky 10) | **no `c9`** → NVHPC CUDA 12.9, EESSI (CPU builds; CUDA toolkit only with an override), own Python envs, Apptainer — see [gpu.md](gpu.md#koios-p100-nodes-gpu) |
 
 Docs: https://hpc.ceico.cz/software/modules/, https://hpc.ceico.cz/software/eessi/
 
@@ -147,6 +148,8 @@ Koios (Rocky 9) has its own, smaller tree `/cvmfs/c9.phoebe.lan` and none of the
 - `/usr/bin/python3` is 3.9; don't build environments on it.
 - Anything compiled or any venv made with Phoebe modules won't work on Koios and vice versa
   (different OS and module trees); rebuild on the cluster where it runs.
+- The Koios GPU nodes (`gpu3`, `gpu4`) run Rocky 10 without `c9`: anything built with `c9`
+  modules won't run there. Use EESSI or a uv-managed Python ([gpu.md](gpu.md#koios-p100-nodes-gpu)).
 
 ## Licensed applications (Phoebe `system` stack)
 

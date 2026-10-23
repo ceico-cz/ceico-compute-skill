@@ -10,13 +10,13 @@ Each cluster has its own Slurm: a job submitted on Phoebe runs only on Phoebe.
 |---|---|---|
 | Login | `phoebe.fzu.cz` | `koios1.fzu.cz` |
 | CPU nodes | 20 × 2× AMD EPYC 7543: 64 cores / 128 threads, 512 GB | 27 × 2× Xeon Gold 6130 (Skylake): 32 cores / 64 threads, 384 GB |
-| GPU nodes | 2 × 8× A100 80 GB (`rocky10`) | none in Slurm (P100 node dedicated to a project) |
+| GPU nodes | 2 × 8× A100 80 GB (`rocky10`) | 2 × 2× P100 16 GB (`gpu`) |
 | Interconnect | 100 Gb/s HDR InfiniBand | 100 Gb/s EDR InfiniBand |
-| OS | Rocky 8 (CPU), Rocky 10 (GPU) | Rocky 9 |
+| OS | Rocky 8 (CPU), Rocky 10 (GPU) | Rocky 9 (CPU), Rocky 10 (GPU) |
 | Default mem | 2 GB/CPU (GPU nodes 16 GB/CPU) | 3 GB/CPU |
-| Max time | `cpu` 18 d, `cpu_int` 20 d, `rocky10` 14 d | 9 d 1 h (`small_int` 7 d) |
-| Software | stacks `2023a`–`2026a`, `system`; EESSI | tree `c9`; EESSI |
-| `/tmp` in jobs | node-local, shared by jobs on the node | node-local, private per job |
+| Max time | `cpu` 18 d, `cpu_int` 20 d, `rocky10` 14 d | 9 d 1 h, also `gpu` (`small_int` 7 d) |
+| Software | stacks `2023a`–`2026a`, `system`; EESSI | tree `c9`; EESSI (GPU nodes: EESSI only) |
+| `/tmp` in jobs | node-local, shared by jobs on the node | node-local, private per job (GPU nodes: shared) |
 | Shared scratch | none | `/mnt/shared-scratch` |
 
 Both: no default time limit (a job without `--time` gets the partition maximum), memory is a
@@ -67,20 +67,23 @@ The previous-generation cluster; good for CPU work, especially when Phoebe is bu
 |---|---|---|---|---|
 | `n1`–`n27` | 2× Intel Xeon Gold 6130 (Skylake, AVX-512), 32 cores / 64 threads (SMT on) | 384 GB | ~1.7 TB NVMe | Rocky 9 |
 | `s1` | 8 vCPUs (VM) | 23 GB | – | Rocky 9 |
+| `gpu3`, `gpu4` | 1× Xeon Gold 6130, 32 cores (SMT off) + 2× Tesla P100-SXM2 16 GB (compute capability 6.0) | 125 GB | 81 GB, **shared by jobs on the node** | Rocky 10 |
 
-The GPU node (`gpu2`, 4× P100 16 GB) is a VM dedicated to a project and is not in Slurm.
+The older GPU node `gpu2` (4× P100 16 GB) is a VM dedicated to a project and is not in Slurm.
+For the P100 nodes see [gpu.md](gpu.md#koios-p100-nodes-gpu): CUDA 12.x only, no Koios `c9` modules.
 
 ### Partitions to use
 
 | Partition | Nodes | Max time | Default mem | Use |
 |---|---|---|---|---|
-| `cpu` (default) | `n[1-9,11-27]` | 9-01:03:00 | 3 GB/CPU | batch CPU work, MPI |
+| `cpu` (default) | `n[3-4,6-9,11-27]` | 9-01:03:00 | 3 GB/CPU | batch CPU work, MPI |
 | `cpu_int` | `n[11-12]` | 9-01:03:00 | 3 GB/CPU | interactive work; only 2 nodes, same priority as `cpu` |
 | `preempt` | `n8` | 9-01:03:00 | 3 GB/CPU | one node; jobs can be **requeued** |
 | `small_int` | `s1` | 7-07:08:00 | 3.5 GB/CPU | light jobs ≤ 8 CPUs, ≤ 23 GB |
+| `gpu` | `gpu[3-4]` | 9-01:03:00 | 3 GB/CPU | P100 GPU jobs, `--gres=gpu:p100:N` (1–2 per node) |
 
 Do not use: `project001` (account `fzu_project001` only), `slurm_test` (account `slurm_test`
-only), `rocky10` (a single test node on Koios, not a GPU partition).
+only), `rocky10` and `rocky10_cpu` (Rocky 10 test nodes `n12` and `n[1-2,5]`; not GPU partitions).
 
 ### QOS
 
@@ -93,7 +96,7 @@ only), `rocky10` (a single test node on Koios, not a GPU partition).
 - Always give a realistic `--time` (+ ~20–50% margin); backfill can't fit jobs that ask for
   the partition maximum.
 - On CPU nodes a Slurm "CPU" is a hardware thread; whole cores are allocated
-  (`--cpus-per-task=1` → 2 CPUs). Phoebe GPU nodes have no SMT (1 CPU = 1 core).
+  (`--cpus-per-task=1` → 2 CPUs). The GPU nodes of both clusters have no SMT (1 CPU = 1 core).
   For compute-bound code, `--cpus-per-task=2*threads` with `OMP_NUM_THREADS=threads`
   or `--hint=nomultithread` are both reasonable; keep it simple unless the user cares.
 - Exceeding memory kills the job (`OUT_OF_MEMORY`). On Phoebe GPU nodes the 16 GB/CPU default
