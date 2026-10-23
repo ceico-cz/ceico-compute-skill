@@ -19,8 +19,10 @@ Docs: https://hpc.ceico.cz/systems/storage/
 
 ## Node-local `/tmp` pattern
 
-Use for I/O-heavy work (many small files, temporary files, databases). Every template does this;
-on Koios `/tmp` is already private per job, and the same lines work there unchanged:
+Use for I/O-heavy work (many small files, temporary files, databases). The single-process
+templates (`cpu_serial`, `cpu_openmp`, `conda`, `gpu_eessi`, `gpu_pytorch_venv`, `apptainer`)
+set this up; `array` and `mpi` don't (for `mpi` see multi-node below). On Koios `/tmp` is
+already private per job, and the same lines work there unchanged:
 
 ```bash
 # private (mode 700), unpredictable name; ${SLURM_JOB_ID:?} stops the script outside a job
