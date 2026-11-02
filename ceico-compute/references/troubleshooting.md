@@ -41,7 +41,10 @@ seff ID
 | `nvcc fatal: Unsupported gpu architecture 'sm_60'` | CUDA 13 compiler (NVHPC default, EESSI 2026.06) on Koios P100 | use CUDA 12.x: NVHPC `…/26.5/cuda/12.9/bin` (template `gpu_koios_p100`) or EESSI 2025.06 `CUDA/12.9.1` |
 | `CUDA/… cannot be loaded as requested` on Koios `gpu` | EESSI has no cc60 (P100) builds | use NVHPC CUDA 12.9; only if cuDNN is needed: `export EESSI_ACCELERATOR_TARGET_OVERRIDE=accel/nvidia/cc70` before the EESSI init (toolkit only) |
 | `CUDA out of memory` | 80 GB per GPU exceeded | smaller batch, mixed precision, more GPUs |
-| MPI hangs / `PMIx` errors | `mpirun` with wrong launcher, or mixed MPI | launch with `srun`, single toolchain, `module purge` first |
+| `libfftw3…` not found after a successful EESSI build | runtime search path missing, even if CMake found MPI/FFTW | inspect `ldd` / `readelf -d`; add dependency RPATHs and relink ([Koios build notes](software.md#building-mpi-applications-on-koios)) |
+| CMake still selects old compiler/MPI paths | build cache from a previous toolchain | configure a new build directory after loading EESSI; inspect the cache before forcing compilers |
+| MPI hangs / `PMIx` errors | mixed MPI, inherited launcher overrides, or a launch/plugin problem | use the build's EESSI toolchain and plain `srun`; check `MpiDefault`, available plugins and `SLURM_MPI_TYPE` ([Koios launch notes](jobs.md#koios-mpi-launch-and-transport)); `--mpi=pmix` may override v3 with a v6 alias |
+| MPI works but cross-node throughput is low | transport fallback, placement, threading or application behavior | verify active IB and UCX selection with an actual cross-node payload; PMIx alone does not prove IB use ([Koios launch notes](jobs.md#koios-mpi-launch-and-transport)) |
 | Very slow, `seff` CPU efficiency ≪ 100% | threads not matching allocation, or I/O bound | set `OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK`; stage data to `/tmp` |
 | CPU efficiency > 100% / node overloaded | code uses all cores of the node (`os.cpu_count()`) | limit threads to `$SLURM_CPUS_PER_TASK` |
 | `Permission denied` writing output | output dir doesn't exist / not yours | `mkdir -p` it before `sbatch`; `--output` dir must exist |
