@@ -122,7 +122,9 @@ More (salloc, multi-step sessions): [references/jobs.md](references/jobs.md#inte
      before copying anything large (> 1 GB) or anything that looks like credentials or
      personal data.
 6. **Build** if needed on that cluster (login node for small builds; GPU code on a GPU node:
-   Phoebe `rocky10`, Koios `gpu`).
+   Phoebe `rocky10`, Koios `gpu`). For Koios MPI/CMake builds, read
+   [software.md: building MPI applications](references/software.md#building-mpi-applications-on-koios);
+   for launch defaults and transport checks, read [jobs.md: Koios MPI](references/jobs.md#koios-mpi-launch-and-transport).
 7. **Write the script** from [templates/](templates/) — fill every `<PLACEHOLDER>` (they are
    deliberately invalid Bash, so an unfilled template fails `bash -n job.sbatch`; run that check).
    For new or unfamiliar code, first submit a short test (`--time=00:10:00`, small input).

@@ -40,8 +40,8 @@ Common header choices:
   (for Python/NumPy also `OPENBLAS_NUM_THREADS`, `MKL_NUM_THREADS`). On `n*` nodes, N counts
   hardware threads.
 - MPI: `--ntasks=N` (or `--nodes=K --ntasks-per-node=M`), `--cpus-per-task=1` (pure MPI) or >1
-  (hybrid). Launch with `srun ./app` — `MpiDefault=pmix` so `--mpi` is optional
-  (`--mpi=pmix_v3` and `pmix_v6` exist on Phoebe). Whole nodes: `--exclusive --mem=0`, up to
+  (hybrid). Launch with `srun ./app` — PMIx is the cluster default, so `--mpi` is optional
+  (Koios currently uses `pmix_v3`; see the launch notes below). Whole nodes: `--exclusive --mem=0`, up to
   128 tasks/node on Phoebe, 64 on Koios.
   Do not use `mpirun` with a hostfile.
 - Python `multiprocessing` / joblib: `--cpus-per-task=N` and use
@@ -49,6 +49,56 @@ Common header choices:
   whole node).
 - Many small independent tasks: job array (`--array=1-100%20` limits to 20 running), not
   thousands of separate `sbatch` calls. Per-task index `$SLURM_ARRAY_TASK_ID`.
+
+## Koios MPI launch and transport
+
+For EESSI OpenMPI CPU applications, use `templates/mpi.sbatch` with the Koios EESSI init
+and the same toolchain used for the build. Put the resource layout in `#SBATCH` and launch
+with **`srun --unbuffered ./APP ...`**. The step inherits the allocation's task count; no
+hostfile, repeated rank count or explicit `--mpi` is needed.
+
+Koios was verified on 2026-11-02 with `MpiDefault=pmix_v3`. Check live settings when diagnosing
+launch problems:
+
+```bash
+scontrol show config | grep MpiDefault
+srun --mpi=list
+```
+
+An explicit `--mpi=pmix` overrides the default and need not mean the same plugin: on the
+verified Koios installation the unversioned alias selected v6. Prefer omitting `--mpi`;
+use `--mpi=pmix_v3` only when deliberately selecting that available plugin. Inherited
+`SLURM_MPI_TYPE` can also override the default; inspect it when comparing scripts.
+
+**PMIx handles process startup/coordination; it does not select InfiniBand.** OpenMPI
+selects its communication transport separately. With EESSI 2025.06 `foss/2024a`
+(OpenMPI 5.0.3) on Koios CPU nodes with active IB, UCX was selected automatically, and
+cross-node MPI communication used IB without setting `OMPI_MCA_pml`, `OMPI_MCA_osc`,
+`OMPI_MCA_coll`, `UCX_TLS` or `UCX_NET_DEVICES`. Start without these overrides; inspect
+inherited settings if old scripts behave differently. Do not force TCP or disable
+collective components as routine setup. OpenMPI 5 uses UCX for IB; old `openib` BTL
+recipes do not apply. See [OpenMPI's IB/UCX documentation](https://docs.open-mpi.org/en/v5.0.3/tuning-apps/networking/ib-and-roce.html).
+
+Keep resource and binding choices proportional to the application:
+
+- Pure MPI: `--cpus-per-task=1`, `OMP_NUM_THREADS=1`; limit incidental BLAS threads
+  (e.g. `OPENBLAS_NUM_THREADS=1`) to avoid nested threading.
+- Koios has 32 physical cores / 64 hardware threads per CPU node. For one rank per
+  physical core, request up to 32 ranks/node with `--threads-per-core=1`; 64 ranks/node
+  uses SMT. Hybrid MPI/OpenMP needs fewer ranks and more CPUs per rank.
+- Start with Slurm's default CPU binding. `--cpu-bind=none` is a diagnostic option for
+  a demonstrated affinity problem, not a general requirement. Benchmark placement and
+  threading at the production layout before assuming that a small smoke test scales.
+
+Validate a small input across **two CPU nodes**, check rank placement and an MPI data
+exchange as well as application output and `sacct` exit codes. A PMIx launch or successful
+single-node run alone does not establish IB use. If transport verification is needed,
+inspect OpenMPI/UCX diagnostic logs and active IB port counters before/after an actual
+cross-node payload; counters on shared nodes can include other traffic.
+
+`mpirun ./APP` inside a Slurm allocation is also supported and discovers the allocation
+without a hostfile; plain `srun` is the tested local template convention, not an upstream
+OpenMPI requirement. See [OpenMPI's Slurm launch documentation](https://docs.open-mpi.org/en/v5.0.x/launching-apps/slurm.html).
 
 ## Interactive work
 

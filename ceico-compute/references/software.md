@@ -166,6 +166,64 @@ module load Python/3.12.3-GCCcore-13.3.0 SciPy-bundle/2024.05-gfbf-2024a
 - The Koios GPU nodes (`gpu3`, `gpu4`): EESSI CPU builds, NVHPC CUDA 12.9 or a uv-managed Python
   ([gpu.md](gpu.md#koios-p100-nodes-gpu)).
 
+### Building MPI applications on Koios
+
+Use the same EESSI release and toolchain for configuration, compilation and execution.
+Small CPU builds can run on the login node with modest parallelism (e.g. two compiler
+processes); use a `cpu` allocation for long or resource-heavy builds. MPI compilation does
+not require a multi-node allocation.
+
+Start a **new build directory** when moving from `c9` or changing toolchains: CMake caches
+compiler and dependency paths. This is a generic starting point, not a list of application
+feature switches:
+
+```bash
+set -euo pipefail
+set +u
+source /cvmfs/software.eessi.io/versions/2025.06/init/lmod/bash
+set -u
+module load foss/2024a CMake/3.29.3-GCCcore-13.3.0
+
+# Run in the application's source directory. Add only its required feature options
+# (MPI, CPU backend, etc.); their names and defaults depend on the project.
+cmake -S . -B build-eessi
+cmake --build build-eessi --parallel 2
+```
+
+- With modules loaded before the first configure, CMake can find EESSI's compiler and MPI
+  without explicit `CMAKE_CXX_COMPILER` or `MPI_CXX_COMPILER`. Inspect the configure output
+  and `build-eessi/CMakeCache.txt` before adding overrides. For Makefile/manual builds,
+  use the loaded `mpicc` / `mpicxx` / `mpifort` wrappers as the project expects.
+- Verify enabled features in the project's configuration. Loading an `HDF5` module does
+  not enable HDF5 in the application; similarly, loading MPI does not turn on an
+  application-specific MPI option. Choose a CPU backend for CPU jobs if the project
+  otherwise autodetects accelerators.
+- Before submitting, inspect `ldd build-eessi/APP` and, if needed,
+  `readelf -d build-eessi/APP` for runtime paths. EESSI does not set `LD_LIBRARY_PATH`.
+  A successful configure/link does not guarantee that shared libraries can be loaded.
+  In particular, CMake can classify EESSI library directories as compiler-implicit and
+  omit needed FFTW paths from its generated RPATH even though MPI was found correctly.
+
+If libraries are missing at runtime, add an RPATH for the dependencies actually used.
+For an MPI + FFTW application built with the `foss/2024a` setup above, this was sufficient:
+
+```bash
+cmake -S . -B build-eessi \
+  -DCMAKE_BUILD_RPATH="$EBROOTFFTWMPI/lib;$EBROOTFFTW/lib;$EBROOTGCCCORE/lib64;$EBROOTOPENMPI/lib"
+cmake --build build-eessi --parallel 2
+```
+
+Retain any application options from the first configure; remove FFTW entries for projects
+that do not use it, and add other libraries only when needed. Prefer module-provided
+`EBROOT*` paths over hardcoded CVMFS architecture paths. `CMAKE_BUILD_RPATH` applies to
+build-tree executables; if using `cmake --install`, configure `CMAKE_INSTALL_RPATH` as
+needed and check the installed executable too. See [CMake's BUILD_RPATH documentation](https://cmake.org/cmake/help/latest/prop_tgt/BUILD_RPATH.html).
+
+Record dependency revisions when the project fetches sources: a branch such as `main`
+is mutable. Preserve the source project's declared versions unless a change is needed;
+copying old dependency trees or forcing compiler paths is not a routine migration step.
+Then run a small two-node application test using the [Koios launch defaults](jobs.md#koios-mpi-launch-and-transport).
+
 ## Licensed applications (Phoebe `system` stack)
 
 - Mathematica: `module load Mathematica/14.1.0`; batch: `math -run < script.m` or
