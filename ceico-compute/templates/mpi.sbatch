@@ -9,7 +9,9 @@
 #SBATCH --output=%x-%j.out
 set -euo pipefail
 
-module purge                         # Koios: instead, source /cvmfs/software.eessi.io/versions/2025.06/init/lmod/bash
+module purge
+# Koios (EESSI only): replace the line above with this one; EESSI's init reads unset variables
+#   set +u; source /cvmfs/software.eessi.io/versions/2025.06/init/lmod/bash; set -u
 module load foss/2024a <MODULES>     # same toolchain the program was built with
 
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK

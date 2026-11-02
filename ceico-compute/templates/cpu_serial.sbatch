@@ -8,7 +8,9 @@
 #SBATCH --output=%x-%j.out
 set -euo pipefail
 
-module purge                         # Koios: instead, source /cvmfs/software.eessi.io/versions/2025.06/init/lmod/bash
+module purge
+# Koios (EESSI only): replace the line above with this one; EESSI's init reads unset variables
+#   set +u; source /cvmfs/software.eessi.io/versions/2025.06/init/lmod/bash; set -u
 module load <MODULES>                # e.g. Python/3.12.3-GCCcore-13.3.0 (one stack only)
 
 # private node-local scratch (mode 700, unpredictable name); stops outside a Slurm job

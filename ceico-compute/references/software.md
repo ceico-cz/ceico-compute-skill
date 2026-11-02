@@ -139,7 +139,10 @@ module load foss/2024a                     # or 2025a, 2025b; 2023.06 has foss/2
 module load Python/3.12.3-GCCcore-13.3.0 SciPy-bundle/2024.05-gfbf-2024a
 ```
 
-- Start job scripts with the `source` line instead of `module purge` (it purges anyway).
+- Start job scripts with the `source` line instead of `module purge` (it purges anyway). Under
+  `set -u` (the templates use `set -euo pipefail`) wrap it: `set +u; source …/init/lmod/bash; set -u`,
+  or the job dies with `EESSI_NO_MODULE_PURGE_ON_INIT: unbound variable`. `module load` is fine
+  under `-u`.
 - EESSI has `SciPy-bundle`, `mpi4py`, `HDF5`, `GSL`, `CFITSIO`, `GROMACS`, `LAMMPS`, `uv` and far
   more (`module spider NAME`); there is no `Miniforge3`, `Mathematica` or `MATLAB`.
 - Binaries built with EESSI toolchains run on both the Rocky 9 and Rocky 10 nodes.

@@ -161,7 +161,8 @@ More (salloc, multi-step sessions): [references/jobs.md](references/jobs.md#inte
    (template `gpu_koios_p100`); EESSI GPU modules don't support it
    (see [references/gpu.md](references/gpu.md#koios-p100-nodes-gpu)).
 6. Never mix modules from different stacks or clusters; start scripts with `module purge`
-   (Koios: with `source /cvmfs/software.eessi.io/versions/<ver>/init/lmod/bash`, which purges).
+   (Koios: with `set +u; source /cvmfs/software.eessi.io/versions/<ver>/init/lmod/bash; set -u`,
+   which purges; EESSI's init fails under `set -u`).
 7. Do not pass `--account`, and don't use reserved or dead partitions (`debug`, `project001`,
    `slurm_test`, Koios `preempt`, Phoebe `gpu*`) — see [references/cluster.md](references/cluster.md).
 8. Storage: separate `/home` per cluster (BeeGFS, no backup), shared `/mnt/proj/pNNN_*`,
