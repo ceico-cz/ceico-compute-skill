@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=<JOBNAME>
-#SBATCH --partition=cpu
+#SBATCH --partition=cpu              # Koios: rocky10_cpu
 #SBATCH --time=<HH:MM:SS>
 #SBATCH --nodes=<NNODES>             # e.g. 2
 #SBATCH --ntasks-per-node=<NTASKS>   # MPI ranks per node: Phoebe up to 128 (64 = 1 per core), Koios up to 64 (32)
@@ -9,7 +9,7 @@
 #SBATCH --output=%x-%j.out
 set -euo pipefail
 
-module purge
+module purge                         # Koios: instead, source /cvmfs/software.eessi.io/versions/2025.06/init/lmod/bash
 module load foss/2024a <MODULES>     # same toolchain the program was built with
 
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK

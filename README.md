@@ -63,7 +63,8 @@ ceico-compute/
 ## Maintenance
 
 Cluster facts were last checked against both clusters on 2026-10-12: partitions, QOS, module
-trees, EESSI versions, container images and storage. When partitions or software change, update
+trees, EESSI versions, container images and storage. Koios was rechecked on 2026-11-02, after
+its login node and most compute nodes moved to Rocky 10 and its `c9` tree was retired (EESSI only). When partitions or software change, update
 `references/cluster.md` and `references/software.md` together with the user docs in
 [ceico-cz/hpc-docs](https://github.com/ceico-cz/hpc-docs). To compare with a cluster:
 `ssh phoebe.fzu.cz 'bash -s' < ceico-compute/scripts/env_report.sh` (or `koios1.fzu.cz`).
@@ -71,8 +72,9 @@ trees, EESSI versions, container images and storage. When partitions or software
 Templates were tested with real jobs:
 - On Phoebe: serial, OpenMP, 2-node MPI, array, conda and Apptainer (CPU). The GPU templates
   have only been syntax-checked.
-- On Koios: serial, OpenMP and Apptainer (CPU, `docker://` image) on `small_int`, and
-  2-node MPI (`foss/2024a`, `srun`) on `cpu`; `gpu_koios_p100` (NVHPC CUDA 12.9,
+- On Koios, before the move to EESSI (with the retired `c9` tree): serial, OpenMP and Apptainer
+  (CPU, `docker://` image) on `small_int`, and 2-node MPI (`foss/2024a`, `srun`) on `cpu`;
+  the CPU templates have not been rerun with EESSI on `rocky10_cpu` yet; `gpu_koios_p100` (NVHPC CUDA 12.9,
   `nvcc -arch=sm_60`, cuBLAS, cuFFT) on `gpu`, 2026-10-23. Also checked there on the P100: EESSI
   `CUDA/12.9.1` with the cc70 override, `nvc++ -cuda` and OpenACC; PyTorch `cu126` works,
   `cu128` doesn't (no `sm_60`).
@@ -81,5 +83,3 @@ Known inconsistencies in hpc-docs, which the skill works around:
 - `getting-started/ondemand/jupyterlab.md` still offers the dead Phoebe `gpu` / `gpu_int` partitions.
 - `slurm/troubleshooting.md` shows an example job pending in partition `gpu`.
 - The GPU node NVMe size is given as 3.2, 3.4 and 3.8 TB on different pages.
-- Koios has undocumented partitions `rocky10` (n12) and `slurm_test`, and `software/modules.md`
-  doesn't say that `SciPy-bundle` and `Mathematica` are missing from the `c9` tree.

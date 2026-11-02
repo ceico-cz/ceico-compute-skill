@@ -1,6 +1,6 @@
 # Nodes, partitions and policies: Phoebe and Koios
 
-Snapshot from 2026-10 (both clusters: Slurm 25.11). Verify with `sinfo -s`,
+Snapshot from 2026-11-02 (both clusters: Slurm 26.05). Verify with `sinfo -s`,
 `scontrol show partition NAME`, `sacctmgr show qos` on the cluster when it matters.
 Each cluster has its own Slurm: a job submitted on Phoebe runs only on Phoebe.
 
@@ -12,10 +12,10 @@ Each cluster has its own Slurm: a job submitted on Phoebe runs only on Phoebe.
 | CPU nodes | 20 × 2× AMD EPYC 7543: 64 cores / 128 threads, 512 GB | 27 × 2× Xeon Gold 6130 (Skylake): 32 cores / 64 threads, 384 GB |
 | GPU nodes | 2 × 8× A100 80 GB (`rocky10`) | 2 × 2× P100 16 GB (`gpu`) |
 | Interconnect | 100 Gb/s HDR InfiniBand | 100 Gb/s EDR InfiniBand |
-| OS | Rocky 8 (CPU), Rocky 10 (GPU) | Rocky 9 (CPU), Rocky 10 (GPU) |
+| OS | Rocky 8 (CPU), Rocky 10 (GPU) | Rocky 10 (login, `rocky10_cpu`, GPU); Rocky 9 on `cpu` (9 nodes, being reinstalled) |
 | Default mem | 2 GB/CPU (GPU nodes 16 GB/CPU) | 3 GB/CPU |
 | Max time | `cpu` 18 d, `cpu_int` 20 d, `rocky10` 14 d | 9 d 1 h, also `gpu` (`small_int` 7 d) |
-| Software | stacks `2023a`–`2026a`, `system`; EESSI | tree `c9`; EESSI (GPU nodes: EESSI only) |
+| Software | stacks `2023a`–`2026a`, `system`; EESSI | EESSI only |
 | `/tmp` in jobs | node-local, shared by jobs on the node | node-local, private per job (GPU nodes: shared) |
 | Shared scratch | none | `/mnt/shared-scratch` |
 
@@ -65,25 +65,31 @@ The previous-generation cluster; good for CPU work, especially when Phoebe is bu
 
 | Nodes | CPU / node | RAM / node | Local `/tmp` | OS |
 |---|---|---|---|---|
-| `n1`–`n27` | 2× Intel Xeon Gold 6130 (Skylake, AVX-512), 32 cores / 64 threads (SMT on) | 384 GB | ~1.7 TB NVMe | Rocky 9 |
-| `s1` | 8 vCPUs (VM) | 23 GB | – | Rocky 9 |
+| `n1`, `n2`, `n4`–`n19` | 2× Intel Xeon Gold 6130 (Skylake, AVX-512), 32 cores / 64 threads (SMT on) | 384 GB | ~1.7 TB NVMe | Rocky 10 |
+| `n3`, `n20`–`n27` | same | 384 GB | ~1.7 TB NVMe | Rocky 9 (until reinstalled) |
+| `s1` | 8 vCPUs (VM) | 23 GB | – | Rocky 9, drained |
 | `gpu3`, `gpu4` | 1× Xeon Gold 6130, 32 cores (SMT off) + 2× Tesla P100-SXM2 16 GB (compute capability 6.0) | 125 GB | 81 GB, **shared by jobs on the node** | Rocky 10 |
 
 The older GPU node `gpu2` (4× P100 16 GB) is a VM dedicated to a project and is not in Slurm.
-For the P100 nodes see [gpu.md](gpu.md#koios-p100-nodes-gpu): CUDA 12.x only, no Koios `c9` modules.
+For the P100 nodes see [gpu.md](gpu.md#koios-p100-nodes-gpu): CUDA 12.x only.
+
+Koios has no module tree of its own: the old `c9` tree (`/cvmfs/c9.phoebe.lan`) is gone, and
+software comes from EESSI on every node. EESSI builds run on both Rocky 9 and Rocky 10 nodes
+(EESSI brings its own compatibility layer), so the same job script works in `cpu` and
+`rocky10_cpu`; code built against the OS's own libraries may need a rebuild.
 
 ### Partitions to use
 
 | Partition | Nodes | Max time | Default mem | Use |
 |---|---|---|---|---|
-| `cpu` (default) | `n[3-4,6-9,11-27]` | 9-01:03:00 | 3 GB/CPU | batch CPU work, MPI |
-| `cpu_int` | `n[11-12]` | 9-01:03:00 | 3 GB/CPU | interactive work; only 2 nodes, same priority as `cpu` |
-| `preempt` | `n8` | 9-01:03:00 | 3 GB/CPU | one node; jobs can be **requeued** |
-| `small_int` | `s1` | 7-07:08:00 | 3.5 GB/CPU | light jobs ≤ 8 CPUs, ≤ 23 GB |
+| `rocky10_cpu` | `n[1-2,4-19]` | 9-01:03:00 | 3 GB/CPU | **preferred** for batch and interactive CPU work, MPI (Rocky 10); shares nodes with `project001` |
+| `cpu` (default) | `n[3,20-27]` | 9-01:03:00 | 3 GB/CPU | batch CPU work on the remaining Rocky 9 nodes; they move to `rocky10_cpu` as they are reinstalled |
+| `small_int` | `s1` | 7-07:08:00 | 3.5 GB/CPU | light jobs ≤ 8 CPUs, ≤ 23 GB; **`s1` is drained**, jobs don't start |
 | `gpu` | `gpu[3-4]` | 9-01:03:00 | 3 GB/CPU | P100 GPU jobs, `--gres=gpu:p100:N` (1–2 per node) |
 
-Do not use: `project001` (account `fzu_project001` only), `slurm_test` (account `slurm_test`
-only), `rocky10` and `rocky10_cpu` (Rocky 10 test nodes `n12` and `n[1-2,5]`; not GPU partitions).
+There is no `cpu_int` on Koios (removed 2026-11-02); use `rocky10_cpu` for interactive work.
+Do not use: `project001` (account `fzu_project001` only), `preempt` and `slurm_test` (down).
+The former test partition `rocky10` is gone.
 
 ### QOS
 

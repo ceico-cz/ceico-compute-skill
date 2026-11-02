@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=<JOBNAME>
-#SBATCH --partition=rocky10          # Phoebe GPU; for CPU-only images (Phoebe or Koios) use cpu and drop --gres and --nv
+#SBATCH --partition=rocky10          # Phoebe GPU; for CPU-only images (Phoebe or Koios) use cpu (Koios: rocky10_cpu) and drop --gres and --nv
 #SBATCH --time=<HH:MM:SS>
 #SBATCH --gres=gpu:a100:<NGPUS>
 #SBATCH --ntasks=1

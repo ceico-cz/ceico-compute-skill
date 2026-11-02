@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=<JOBNAME>
-#SBATCH --partition=cpu              # cpu | cpu_int | small_int | preempt: same names on Phoebe and Koios
+#SBATCH --partition=cpu              # Phoebe: cpu | cpu_int | small_int | preempt; Koios: rocky10_cpu | cpu
 #SBATCH --time=<HH:MM:SS>            # always set; no default limit
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=2            # = 1 core (2 hardware threads)
@@ -8,7 +8,7 @@
 #SBATCH --output=%x-%j.out
 set -euo pipefail
 
-module purge
+module purge                         # Koios: instead, source /cvmfs/software.eessi.io/versions/2025.06/init/lmod/bash
 module load <MODULES>                # e.g. Python/3.12.3-GCCcore-13.3.0 (one stack only)
 
 # private node-local scratch (mode 700, unpredictable name); stops outside a Slurm job
