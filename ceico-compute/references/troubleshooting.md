@@ -58,7 +58,7 @@ seff ID
 | `QOSMaxCpuPerUserLimit`, `AssocGrp*` | user's / group's CPU or GPU cap reached | wait; ask the admin if a higher limit is justified |
 | `ReqNodeNotAvail`, `PartitionDown`, `PartitionNodeLimit` | wrong partition (Phoebe `gpu`, `gpu_int`, `project001`) or nodes down / in maintenance | use `rocky10` / `cpu`; check `sinfo -R` |
 | `AccountNotAllowed`, `InvalidAccount` (submit error) | reserved partition (`project001`, `slurm_test`) | Phoebe `cpu` / `cpu_int`; Koios `cpu` |
-| `EESSI_NO_MODULE_PURGE_ON_INIT: unbound variable`, job fails at once | EESSI init `source`d under `set -u` | `set +u; source …/init/lmod/bash; set -u` |
+| `EESSI_NO_MODULE_PURGE_ON_INIT: unbound variable`, job fails at once | EESSI init `source`d under `set -u` | `set +u; source /cvmfs/software.eessi.io/versions/<ver>/init/lmod/bash; set -u` |
 | `invalid partition specified: cpu_int` / `rocky10` / `rocky10_cpu` on Koios | removed in 2026-11 | `cpu` |
 | `BadConstraints` / GPU request on Koios | GPUs requested on a CPU partition, or `a100` on Koios | Koios: `--partition=gpu --gres=gpu:p100:N` (N ≤ 2); A100s are on Phoebe `rocky10` |
 | `PartitionTimeLimit` | `--time` > partition max | lower `--time` |
