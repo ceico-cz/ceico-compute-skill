@@ -66,11 +66,12 @@ Use `-arch=sm_80` (A100) for nvcc.
 ## PyTorch with uv (recommended for Python ML)
 
 Set up once (download-bound; fine on the login node). The venv must be created with a
-uv-managed Python (not module Python, which is missing on Rocky 10, nor `/usr/bin/python3`
-3.6 on the login node):
+uv-managed Python (not module Python, which is missing on the Phoebe GPU nodes, nor
+`/usr/bin/python3`, 3.6 on the Phoebe login node):
 
 ```bash
-# once: uv itself, from PyPI with a module Python (on the login node of either cluster)
+# once: uv itself, from PyPI with a module Python (on the login node of either cluster;
+# on Koios first: source /cvmfs/software.eessi.io/versions/2025.06/init/lmod/bash)
 module load Python/3.12.3-GCCcore-13.3.0 && pip install --user uv && module purge
 # uv lands in ~/.local/bin; check with: ~/.local/bin/uv --version
 # venv with a self-contained Python, usable on Rocky 8 and 10
@@ -123,9 +124,8 @@ run on Phoebe.
   (use the `mktemp` pattern from [storage.md](storage.md)). Rocky Linux 10.2, driver 580
   (the last driver branch that supports Pascal GPUs).
 - Partition `gpu`, max 9-01:03:00, default memory 3 GB/CPU. About 16 CPUs per GPU.
-- The Koios `c9` modules are **not** available (`MODULEPATH` still names them, but the
-  repository isn't mounted). `/usr/local/cuda` doesn't exist. Python: `/usr/bin/python3` 3.12
-  or a uv-managed Python.
+- Software as on the rest of Koios: EESSI (CPU builds), plus the NVIDIA HPC SDK below.
+  `/usr/local/cuda` doesn't exist. Python: `/usr/bin/python3` 3.12 or a uv-managed Python.
 - **CUDA 12.x only**: CUDA 13 compilers fail with `Unsupported gpu architecture 'sm_60'`.
   Compile with `-arch=sm_60` (nvcc 12.x warns that pre-`sm_75` targets are deprecated;
   `-Wno-deprecated-gpu-targets` silences it).

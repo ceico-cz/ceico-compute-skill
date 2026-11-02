@@ -6,8 +6,8 @@ Where software comes from depends on the cluster and node type:
 |---|---|
 | Phoebe: login node, `cpu`, `cpu_int`, `preempt`, `small_int` (Rocky 8) | Phoebe stacks `2023a`–`2026a` + `system` (default `MODULEPATH`), legacy `/sw/phoebe/*` |
 | Phoebe `rocky10` GPU nodes (Rocky 10) | **none by default** → EESSI, NVIDIA HPC SDK, `/usr/local/cuda`, own Python envs, Apptainer |
-| Koios: login and CPU nodes (Rocky 9) | Koios tree `c9` (default `MODULEPATH`); EESSI; own installs — see [Koios](#koios) |
-| Koios `gpu` P100 nodes (Rocky 10) | **no `c9`** → NVHPC CUDA 12.9, EESSI (CPU builds; CUDA toolkit only with an override), own Python envs, Apptainer — see [gpu.md](gpu.md#koios-p100-nodes-gpu) |
+| Koios: login and CPU nodes (Rocky 10; Rocky 9 on `cpu` until reinstalled) | **EESSI only** (empty `MODULEPATH` until it is initialised); own installs — see [Koios](#koios) |
+| Koios `gpu` P100 nodes (Rocky 10) | NVHPC CUDA 12.9, EESSI (CPU builds; CUDA toolkit only with an override), own Python envs, Apptainer — see [gpu.md](gpu.md#koios-p100-nodes-gpu) |
 
 Docs: https://hpc.ceico.cz/software/modules/, https://hpc.ceico.cz/software/eessi/
 
@@ -36,14 +36,14 @@ Rules:
 - Collections: `module save NAME` / `module restore NAME` (stored in `~/.config/lmod`).
 - Always `module purge` at the start of job scripts, then load explicit versions.
 
-Missing software: first `module spider`, then EESSI (works on CPU nodes too), then a user
+Missing software (Phoebe): first `module spider`, then EESSI (works on CPU nodes too), then a user
 install (pip/uv/conda/Spack/own build in `~` or `/mnt/proj`). Users can also ask the admin
 to add an EasyBuild module.
 
 ## EESSI (`/cvmfs/software.eessi.io`)
 
-The module stack for the Phoebe GPU nodes; also usable on the Phoebe CPU nodes and on Koios
-(there it selects `x86_64/intel/skylake_avx512`).
+The module stack for the Phoebe GPU nodes and the **only** module stack on Koios (there it
+selects `x86_64/intel/skylake_avx512`); also usable on the Phoebe CPU nodes.
 
 ```bash
 # replaces Lmod setup, purges loaded modules (simplest; use in GPU jobs)
@@ -86,7 +86,8 @@ Pick one approach and stick to it per project.
    A venv built with module Python only works with that same module loaded, and only on
    Rocky 8 nodes.
 2. **uv** (fast, any Python version, works on GPU nodes too): install once with
-   `module load Python/3.12.3-GCCcore-13.3.0 && pip install --user uv` (into `~/.local/bin`), then
+   `module load Python/3.12.3-GCCcore-13.3.0 && pip install --user uv` (into `~/.local/bin`;
+   on Koios load that `Python` from EESSI first, or use EESSI's `uv` module), then
    `uv venv --python 3.12 ~/venvs/<name>; uv pip install --python ~/venvs/<name> torch …`.
    uv-managed Pythons are self-contained, so one venv can serve both Rocky 8 and 10 for
    pure-Python + wheels. Docs: https://hpc.ceico.cz/software/python-uv/
@@ -107,7 +108,7 @@ Pick one approach and stick to it per project.
 5. PyTorch, TensorFlow, JAX, CuPy are **not** modules: pip/uv wheels (bundle CUDA) — see
    [gpu.md](gpu.md); or the Apptainer images below.
 
-Create environments on the login node (I/O-bound, fine) or in a `cpu_int` job if the build is heavy.
+Create environments on the login node (I/O-bound, fine) or in a `cpu_int` job (Koios: `rocky10_cpu`) if the build is heavy.
 
 ## Containers: Apptainer
 
@@ -126,17 +127,24 @@ Create environments on the login node (I/O-bound, fine) or in a `cpu_int` job if
 
 ## Koios
 
-Koios (Rocky 9) has its own, smaller tree `/cvmfs/c9.phoebe.lan` and none of the Phoebe stacks.
+Koios has **no module tree of its own** any more: the `c9` tree (`/cvmfs/c9.phoebe.lan`) is
+gone with the move to Rocky 10, and none of the Phoebe stacks are mounted. Software comes from
+**EESSI** on the login node and on every compute node (Rocky 10 and the remaining Rocky 9 `cpu`
+nodes); it selects `x86_64/intel/skylake_avx512`. Lmod is installed with an empty `MODULEPATH`,
+so `module avail` shows nothing until EESSI is initialised:
 
-| Kind | Modules (check with `module -t avail`) |
-|---|---|
-| Toolchains | `foss/2022a`, `foss/2023a`, `foss/2024a`, `foss/2025a` (OpenMPI etc. hidden, as on Phoebe) |
-| Python | `Python/3.10.4-GCCcore-11.3.0-bare`, `3.11.3-GCCcore-12.3.0`, `3.12.3-GCCcore-13.3.0`, `3.13.1-GCCcore-14.2.0` — no `SciPy-bundle` module: pip-install NumPy/SciPy into a venv |
-| Libraries | `HDF5` (`gompi-2022a`, `2023a`, `2025a`), `GSL`, `CFITSIO`, `HEALPix`, `PFFT`, `Szip` |
-| Tools | `Clang`, `Rust`, `VTune` |
+```bash
+source /cvmfs/software.eessi.io/versions/2025.06/init/lmod/bash   # in every shell and job script
+module load foss/2024a                     # or 2025a, 2025b; 2023.06 has foss/2022b–2023b
+module load Python/3.12.3-GCCcore-13.3.0 SciPy-bundle/2024.05-gfbf-2024a
+```
 
-- No `system` stack: **no Miniforge3, CUDA, Mathematica or MATLAB modules**, and no
-  `/cvmfs/apptainer.phoebe.lan` images.
+- Start job scripts with the `source` line instead of `module purge` (it purges anyway).
+- EESSI has `SciPy-bundle`, `mpi4py`, `HDF5`, `GSL`, `CFITSIO`, `GROMACS`, `LAMMPS`, `uv` and far
+  more (`module spider NAME`); there is no `Miniforge3`, `Mathematica` or `MATLAB`.
+- Binaries built with EESSI toolchains run on both the Rocky 9 and Rocky 10 nodes.
+- Not in EESSI, but in the old `c9` tree: `HEALPix`, `PFFT`, `VTune`. Build them in the home
+  or project directory with an EESSI toolchain, or tell the user to ask the admin.
 - conda: install Miniforge into the home directory once (ask the user first), then source it
   in every job (https://hpc.ceico.cz/software/conda/#on-koios):
   ```bash
@@ -144,15 +152,16 @@ Koios (Rocky 9) has its own, smaller tree `/cvmfs/c9.phoebe.lan` and none of the
   bash Miniforge3-Linux-x86_64.sh -b -p $HOME/miniforge3
   source $HOME/miniforge3/etc/profile.d/conda.sh     # instead of the Phoebe module lines
   ```
-- uv works the same as on Phoebe (install into `~/.local/bin`).
-- EESSI: `source /cvmfs/software.eessi.io/versions/2025.06/init/lmod/bash` gives far more
-  software (e.g. `SciPy-bundle`, `GROMACS`, `LAMMPS`) built for Skylake.
-- Apptainer is installed; pull images yourself (`apptainer pull docker://…`).
-- `/usr/bin/python3` is 3.9; don't build environments on it.
-- Anything compiled or any venv made with Phoebe modules won't work on Koios and vice versa
-  (different OS and module trees); rebuild on the cluster where it runs.
-- The Koios GPU nodes (`gpu3`, `gpu4`) run Rocky 10 without `c9`: anything built with `c9`
-  modules won't run there. Use EESSI or a uv-managed Python ([gpu.md](gpu.md#koios-p100-nodes-gpu)).
+- uv: `module load uv/0.7.13-GCCcore-14.2.0` from EESSI 2025.06, or `pip install --user uv`
+  with an EESSI `Python` loaded (into `~/.local/bin`).
+- Apptainer is installed, and the images in `/cvmfs/apptainer.phoebe.lan` are available too.
+- `/usr/bin/python3` is 3.12 on the Rocky 10 nodes (3.9 on the Rocky 9 ones); don't build
+  environments on it.
+- Old builds made with `c9` modules no longer load (the tree is gone): rebuild them with an EESSI
+  toolchain. Anything compiled or any venv made with Phoebe modules won't work on Koios and vice
+  versa; rebuild on the cluster where it runs.
+- The Koios GPU nodes (`gpu3`, `gpu4`): EESSI CPU builds, NVHPC CUDA 12.9 or a uv-managed Python
+  ([gpu.md](gpu.md#koios-p100-nodes-gpu)).
 
 ## Licensed applications (Phoebe `system` stack)
 

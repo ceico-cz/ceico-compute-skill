@@ -5,7 +5,7 @@
 | Cluster | Login node | OS | ED25519 host key |
 |---|---|---|---|
 | Phoebe | `phoebe.fzu.cz` (VM `login1.phoebe.lan`) | Rocky 8 | `SHA256:xy6+Upes9O4LWWQkME7TjWsmotoTOMlZMSBBWg+j2Zk` |
-| Koios | `koios1.fzu.cz` (`koios1.koios.lan`) | Rocky 9 | `SHA256:iIOuILdupxCyIhkFKNjlsRP1hs/cFHvuBKu9XF8HVFQ` |
+| Koios | `koios1.fzu.cz` (`koios1.koios.lan`) | Rocky 10 | `SHA256:iIOuILdupxCyIhkFKNjlsRP1hs/cFHvuBKu9XF8HVFQ` |
 
 - SSH works from anywhere.
 - Authentication: **SSH keys only** (no passwords). Accounts are managed in Phoebe's FreeIPA

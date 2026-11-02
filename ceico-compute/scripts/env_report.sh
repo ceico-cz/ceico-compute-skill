@@ -32,7 +32,7 @@ echo "$MODULEPATH" | tr ':' '\n' | awk '!seen[$0]++'
 
 section "software repositories"
 # CVMFS is automounted: test each known path instead of listing /cvmfs
-for d in /cvmfs/{2023a,2024a,2025a,2026a,system}.phoebe.lan /cvmfs/c9.phoebe.lan /cvmfs/apptainer.phoebe.lan; do
+for d in /cvmfs/{2023a,2024a,2025a,2026a,system}.phoebe.lan /cvmfs/apptainer.phoebe.lan; do
     [ -d "$d" ] && echo "$d"
 done
 echo "EESSI versions: $(ls /cvmfs/software.eessi.io/versions 2>/dev/null | tr '\n' ' ')"

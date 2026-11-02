@@ -53,12 +53,12 @@ Common header choices:
 ## Interactive work
 
 ```bash
-srun --partition=cpu_int --cpus-per-task=4 --mem=8G --time=02:00:00 --pty bash
+srun --partition=cpu_int --cpus-per-task=4 --mem=8G --time=02:00:00 --pty bash       # Phoebe; Koios: rocky10_cpu
 srun --partition=rocky10 --gres=gpu:a100:1 --cpus-per-task=8 --mem=64G --time=02:00:00 --pty bash   # Phoebe
 srun --partition=gpu --gres=gpu:p100:1 --cpus-per-task=8 --mem=32G --time=02:00:00 --pty bash       # Koios
 ```
 
-Koios `cpu_int` has only 2 nodes; there `cpu` works for interactive `srun` too.
+Koios has no `cpu_int`: use `rocky10_cpu` for interactive `srun` there.
 Run inside `screen`/`tmux` on the login node so a dropped SSH does not kill it. From an
 agent shell (no TTY), prefer a short batch job, or `srun … bash -c '<commands>'` without
 `--pty` for a quick one-off test (e.g. building on a GPU node):
@@ -83,7 +83,7 @@ exit                   # end the allocation
 Notes:
 - The interactive job's working directory is the directory where `srun` was started;
   modules loaded on the login node are inherited, so `module purge` first on the GPU nodes
-  (Rocky 10, no Phoebe stacks or Koios `c9`).
+  (Rocky 10, no Phoebe stacks).
 - Inside, `$SLURM_JOB_ID`, `$SLURM_CPUS_PER_TASK` and `CUDA_VISIBLE_DEVICES` are set as in
   batch jobs. `squeue --me` shows the session as a running job; it counts against limits
   until `exit`, so don't leave idle sessions open for days.

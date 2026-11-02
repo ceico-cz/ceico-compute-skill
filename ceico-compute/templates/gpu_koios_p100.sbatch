@@ -10,7 +10,7 @@
 set -euo pipefail
 
 # P100 = compute capability 6.0 (sm_60): needs a CUDA 12.x toolkit, CUDA 13 can't target it.
-# Rocky 10 node without the Koios c9 modules. CUDA 12.9 from the NVIDIA HPC SDK; not its
+# Rocky 10 node; EESSI has no P100 GPU builds. CUDA 12.9 from the NVIDIA HPC SDK; not its
 # default nvcc (CUDA 13.2), which fails for sm_60. Build with:
 #   nvcc -arch=sm_60 -Xlinker -rpath=$CUDA_HOME/lib64:$CUDA_MATH/lib64 ... [-lcublas -lcufft ...]
 module purge

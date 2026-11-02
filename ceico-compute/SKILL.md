@@ -1,6 +1,6 @@
 ---
 name: ceico-compute
-description: "Run users' codes on the CEICO HPC clusters at FZU Prague: Phoebe (phoebe.fzu.cz, AMD EPYC nodes and A100 GPUs) and Koios (koios1.fzu.cz, Xeon CPU nodes and P100 GPUs). Verify SSH access, pick the cluster and Slurm partition, find software (Lmod/EasyBuild CVMFS stacks, EESSI, NVHPC, conda/uv, Apptainer), stage files, write and submit sbatch scripts, monitor jobs, diagnose failures and fetch results. Use whenever the user mentions Phoebe, Koios, phoebe.fzu.cz, koios1.fzu.cz, the CEICO or FZU cluster, or wants to run, compile, submit or debug a job there."
+description: "Run users' codes on the CEICO HPC clusters at FZU Prague: Phoebe (phoebe.fzu.cz, AMD EPYC nodes and A100 GPUs) and Koios (koios1.fzu.cz, Xeon CPU nodes and P100 GPUs). Verify SSH access, pick the cluster and Slurm partition, find software (Phoebe's Lmod/EasyBuild CVMFS stacks, EESSI, NVHPC, conda/uv, Apptainer), stage files, write and submit sbatch scripts, monitor jobs, diagnose failures and fetch results. Use whenever the user mentions Phoebe, Koios, phoebe.fzu.cz, koios1.fzu.cz, the CEICO or FZU cluster, or wants to run, compile, submit or debug a job there."
 ---
 
 # CEICO compute (Phoebe and Koios)
@@ -13,8 +13,8 @@ User documentation lives at https://hpc.ceico.cz; link the relevant page when it
 |---|---|---|
 | Login (`HOST`) | `phoebe.fzu.cz` | `koios1.fzu.cz` |
 | Nodes | 20 × 64-core AMD EPYC 7543, 512 GB; 2 × 8 A100 GPU nodes | 27 × 32-core Xeon Gold 6130, 384 GB; 2 × 2 P100 GPU nodes |
-| OS | Rocky 8 (CPU), Rocky 10 (GPU) | Rocky 9 (CPU), Rocky 10 (GPU) |
-| Software | stacks `2023a`–`2026a`, `system`; EESSI | tree `c9`; EESSI (only EESSI on GPU nodes) |
+| OS | Rocky 8 (CPU), Rocky 10 (GPU) | Rocky 10 (login, `rocky10_cpu`, GPU); Rocky 9 on the 9 `cpu` nodes until reinstalled |
+| Software | stacks `2023a`–`2026a`, `system`; EESSI | **EESSI only** (no own module tree) |
 
 Both clusters share accounts and SSH keys but have **separate home directories**.
 Details: [references/cluster.md](references/cluster.md).
@@ -62,7 +62,7 @@ partitions, queue, the user's jobs, software and storage, run
   `module spider/avail`, `ls`/`cat` of the user's own files.
 - Copying the user's code to the cluster (into `~/jobs/<name>/`, see *Stage* below) and
   compiling it on the login node are fine. Anything longer than a few minutes or using many cores is **not**
-  run on a login node — use a job (`srun` on `cpu_int` / `small_int`, or `sbatch`).
+  run on a login node — use a job (`srun` on Phoebe `cpu_int` / Koios `rocky10_cpu`, or `sbatch`).
 - Write the job script into the job directory and **show it to the user** before `sbatch`.
   Submit once they agree; if they already said "run it / submit it", submit directly.
 - `scancel`, deleting files, or anything touching other users' data: only on explicit request.
@@ -74,8 +74,10 @@ For testing, debugging, building or exploring on a compute node, start an intera
 instead of working on the login node. Always give partition, CPUs, memory and time:
 
 ```bash
-# CPU, either cluster (Koios cpu_int has only 2 nodes; plain cpu works there too)
+# CPU: Phoebe
 srun --partition=cpu_int --cpus-per-task=4 --mem=8G --time=01:00:00 --pty bash
+# CPU: Koios (no cpu_int)
+srun --partition=rocky10_cpu --cpus-per-task=4 --mem=8G --time=01:00:00 --pty bash
 # GPU: Phoebe A100
 srun --partition=rocky10 --gres=gpu:a100:1 --cpus-per-task=8 --mem=64G --time=01:00:00 --pty bash
 # GPU: Koios P100
@@ -104,7 +106,8 @@ More (salloc, multi-step sessions): [references/jobs.md](references/jobs.md#inte
 3. **Pick partition and software** from the table below; details in
    [references/cluster.md](references/cluster.md) and [references/software.md](references/software.md).
 4. **Find software** live on that cluster: `module spider NAME`, then
-   `module spider NAME/VERSION`; or EESSI. Pin full versions in scripts.
+   `module spider NAME/VERSION`; or EESSI (on Koios only EESSI: `source` its init first,
+   see [references/software.md](references/software.md#koios)). Pin full versions in scripts.
 5. **Stage** code — only the project, never secrets:
    - Never sync from the home directory (`$HOME`, `~`) or a directory that contains `.ssh`;
      use the project directory or an explicit file list.
@@ -132,13 +135,13 @@ More (salloc, multi-step sessions): [references/jobs.md](references/jobs.md#inte
 
 | Workload | Partition (both clusters unless noted) | Software |
 |---|---|---|
-| Serial / OpenMP / small Python | `cpu` (default); `cpu_int` for short/interactive | Phoebe stacks or Koios `c9`; Miniforge3 (module on Phoebe, own install on Koios) |
-| MPI, multi-node | `cpu` | `foss/<version>` + `srun` (PMIx is default) |
-| Restartable / checkpointing | `preempt` (may be requeued; Koios: one node only) | as above |
-| Light, tiny (≤ 8 CPUs) | `small_int` | as above |
+| Serial / OpenMP / small Python | Phoebe `cpu` (default), `cpu_int` for short/interactive; Koios `rocky10_cpu` (or `cpu`) | Phoebe stacks; Koios EESSI; Miniforge3 (module on Phoebe, own install on Koios) |
+| MPI, multi-node | Phoebe `cpu`; Koios `rocky10_cpu` | `foss/<version>` (Koios: from EESSI) + `srun` (PMIx is default) |
+| Restartable / checkpointing | Phoebe `preempt` (may be requeued) | as above |
+| Light, tiny (≤ 8 CPUs) | Phoebe `small_int` (Koios `small_int` is down) | as above |
 | GPU (CUDA, PyTorch, JAX, …) | Phoebe `rocky10` + `--gres=gpu:a100:N` | **EESSI**, NVHPC, pip/uv venv, Apptainer `--nv` — *not* the Phoebe stacks |
-| GPU, older code that runs on P100 | Koios `gpu` + `--gres=gpu:p100:N` | NVHPC CUDA 12.9 (template `gpu_koios_p100`), PyTorch `cu126`, EESSI CPU builds — *not* `c9` |
-| Mathematica / MATLAB | `cpu` / `cpu_int` | Phoebe `system` stack (not on Koios) |
+| GPU, older code that runs on P100 | Koios `gpu` + `--gres=gpu:p100:N` | NVHPC CUDA 12.9 (template `gpu_koios_p100`), PyTorch `cu126`, EESSI CPU builds |
+| Mathematica / MATLAB | Phoebe `cpu` / `cpu_int` | Phoebe `system` stack (not on Koios) |
 
 ## Shared rules
 
@@ -152,13 +155,15 @@ More (salloc, multi-step sessions): [references/jobs.md](references/jobs.md#inte
    `OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK` for threaded code.
 4. Phoebe GPU jobs: partition `rocky10`, `--gres=gpu:a100:N` (1–8 per node), ~8 CPUs per GPU,
    max 16 A100 per user. Use the GPUs Slurm gives you (`CUDA_VISIBLE_DEVICES`).
-5. GPU nodes run Rocky 10 without the cluster's CVMFS module trees (Phoebe stacks, Koios `c9`);
-   rebuild there. Koios P100 (sm_60): CUDA 12.x only — NVHPC's CUDA 12.9 and
-   `nvcc -arch=sm_60` (template `gpu_koios_p100`); EESSI GPU modules don't support it
+5. GPU nodes run Rocky 10 without the Phoebe stacks; rebuild there. Koios has no module tree of
+   its own any more (the old `c9` tree is gone): EESSI, own envs or Apptainer on every node.
+   Koios P100 (sm_60): CUDA 12.x only — NVHPC's CUDA 12.9 and `nvcc -arch=sm_60`
+   (template `gpu_koios_p100`); EESSI GPU modules don't support it
    (see [references/gpu.md](references/gpu.md#koios-p100-nodes-gpu)).
-6. Never mix modules from different stacks or clusters; start scripts with `module purge`.
-7. Do not pass `--account`, and don't use reserved partitions (`debug`, `project001`,
-   `slurm_test`, Koios `rocky10` and `rocky10_cpu`, Phoebe `gpu*`) — see [references/cluster.md](references/cluster.md).
+6. Never mix modules from different stacks or clusters; start scripts with `module purge`
+   (Koios: with `source /cvmfs/software.eessi.io/versions/<ver>/init/lmod/bash`, which purges).
+7. Do not pass `--account`, and don't use reserved or dead partitions (`debug`, `project001`,
+   `slurm_test`, Koios `preempt`, Phoebe `gpu*`) — see [references/cluster.md](references/cluster.md).
 8. Storage: separate `/home` per cluster (BeeGFS, no backup), shared `/mnt/proj/pNNN_*`,
    node-local `/tmp` (per-job subdirectory on Phoebe, private per job on Koios), Koios also
    `/mnt/shared-scratch`. See [references/storage.md](references/storage.md).
