@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=<JOBNAME>
-#SBATCH --partition=cpu              # Phoebe: cpu | cpu_int | small_int | preempt; Koios: rocky10_cpu | cpu
+#SBATCH --partition=cpu              # Phoebe: cpu | cpu_int | small_int | preempt; Koios: cpu
 #SBATCH --time=<HH:MM:SS>            # always set; no default limit
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=2            # = 1 core (2 hardware threads)

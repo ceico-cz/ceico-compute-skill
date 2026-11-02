@@ -12,7 +12,7 @@ Each cluster has its own Slurm: a job submitted on Phoebe runs only on Phoebe.
 | CPU nodes | 20 × 2× AMD EPYC 7543: 64 cores / 128 threads, 512 GB | 27 × 2× Xeon Gold 6130 (Skylake): 32 cores / 64 threads, 384 GB |
 | GPU nodes | 2 × 8× A100 80 GB (`rocky10`) | 2 × 2× P100 16 GB (`gpu`) |
 | Interconnect | 100 Gb/s HDR InfiniBand | 100 Gb/s EDR InfiniBand |
-| OS | Rocky 8 (CPU), Rocky 10 (GPU) | Rocky 10 (login, `rocky10_cpu`, GPU); Rocky 9 on `cpu` (9 nodes, being reinstalled) |
+| OS | Rocky 8 (CPU), Rocky 10 (GPU) | Rocky 10 (login, `cpu`, GPU); Rocky 9 on `legacy` (8 nodes, being reinstalled) |
 | Default mem | 2 GB/CPU (GPU nodes 16 GB/CPU) | 3 GB/CPU |
 | Max time | `cpu` 18 d, `cpu_int` 20 d, `rocky10` 14 d | 9 d 1 h, also `gpu` (`small_int` 7 d) |
 | Software | stacks `2023a`–`2026a`, `system`; EESSI | EESSI only |
@@ -76,20 +76,20 @@ For the P100 nodes see [gpu.md](gpu.md#koios-p100-nodes-gpu): CUDA 12.x only.
 Koios has no module tree of its own: the old `c9` tree (`/cvmfs/c9.phoebe.lan`) is gone, and
 software comes from EESSI on every node. EESSI builds run on both Rocky 9 and Rocky 10 nodes
 (EESSI brings its own compatibility layer), so the same job script works in `cpu` and
-`rocky10_cpu`; code built against the OS's own libraries may need a rebuild.
+`legacy`; code built against the OS's own libraries may need a rebuild.
 
 ### Partitions to use
 
 | Partition | Nodes | Max time | Default mem | Use |
 |---|---|---|---|---|
-| `rocky10_cpu` | `n[1-2,4-19]` | 9-01:03:00 | 3 GB/CPU | **preferred** for batch and interactive CPU work, MPI (Rocky 10); shares nodes with `project001` |
-| `cpu` (default) | `n[3,20-27]` | 9-01:03:00 | 3 GB/CPU | batch CPU work on the remaining Rocky 9 nodes; they move to `rocky10_cpu` as they are reinstalled |
+| `cpu` (default) | `n[1-19]` | 9-01:03:00 | 3 GB/CPU | batch and interactive CPU work, MPI (Rocky 10); shares nodes with `project001` |
+| `legacy` | `n[20-27]` | 9-01:03:00 | 3 GB/CPU | the remaining Rocky 9 nodes; they move to `cpu` as they are reinstalled. Only for old binaries that need Rocky 9 |
 | `small_int` | `s1` | 7-07:08:00 | 3.5 GB/CPU | light jobs ≤ 8 CPUs, ≤ 23 GB; **`s1` is drained**, jobs don't start |
 | `gpu` | `gpu[3-4]` | 9-01:03:00 | 3 GB/CPU | P100 GPU jobs, `--gres=gpu:p100:N` (1–2 per node) |
 
-There is no `cpu_int` on Koios (removed 2026-11-02); use `rocky10_cpu` for interactive work.
+There is no `cpu_int` on Koios (removed 2026-11-02); use `cpu` for interactive work.
 Do not use: `project001` (account `fzu_project001` only), `preempt` and `slurm_test` (down).
-The former test partition `rocky10` is gone.
+The former partitions `rocky10` and `rocky10_cpu` are gone (use `cpu`).
 
 ### QOS
 

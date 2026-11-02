@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=<JOBNAME>
-#SBATCH --partition=cpu              # or preempt for restartable tasks (Phoebe); Koios: rocky10_cpu
+#SBATCH --partition=cpu              # or preempt for restartable tasks (Phoebe only)
 #SBATCH --time=<HH:MM:SS>            # per array task
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=2

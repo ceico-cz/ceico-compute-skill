@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=<JOBNAME>
-#SBATCH --partition=cpu              # Koios: rocky10_cpu
+#SBATCH --partition=cpu              # same name on Phoebe and Koios
 #SBATCH --time=<HH:MM:SS>
 #SBATCH --nodes=<NNODES>             # e.g. 2
 #SBATCH --ntasks-per-node=<NTASKS>   # MPI ranks per node: Phoebe up to 128 (64 = 1 per core), Koios up to 64 (32)
