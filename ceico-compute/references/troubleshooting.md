@@ -32,7 +32,7 @@ seff ID
 | `module: command not found` | non-login shell without Lmod | first line `#!/bin/bash` (sbatch uses a login-like env); or `source /etc/profile.d/lmod.sh` |
 | `Lmod has detected the following error: … unknown module` on a GPU node | Phoebe stacks aren't available on `rocky10` | use EESSI / NVHPC / venv (see [gpu.md](gpu.md)) |
 | `These module(s) or extension(s) exist but cannot be loaded as requested` | dependency from a different stack / toolchain needed first | `module spider NAME/VERSION` and load what it lists; don't mix stacks |
-| `GLIBC_2.xx not found`, `libfoo.so: cannot open shared object` | binary or venv built on another cluster / node type (Phoebe Rocky 8 vs the Rocky 10 nodes; Koios's last Rocky 9 `cpu` nodes) | rebuild where it runs; use uv-managed Python for venvs |
+| `GLIBC_2.xx not found`, `libfoo.so: cannot open shared object` | binary or venv built on another cluster / node type (Phoebe Rocky 8 vs the Rocky 10 nodes; Koios's last Rocky 9 nodes in `legacy`) | rebuild where it runs; use uv-managed Python for venvs |
 | `module: …` unknown, or `module avail` empty, on Koios | Koios has only EESSI (the `c9` tree is gone), not initialised; or a module EESSI lacks (`Miniforge3`, `Mathematica`, `HEALPix`, …) | `source /cvmfs/software.eessi.io/versions/2025.06/init/lmod/bash` first; own Miniforge in `~/miniforge3`; Mathematica on Phoebe; see [software.md](software.md#koios) |
 | file not found that exists "on the cluster" | it is in the other cluster's home | copy it ([storage.md](storage.md#copying-between-the-clusters)) |
 | `libcudnn…` / `libcublas…` not found with EESSI | EESSI doesn't set `LD_LIBRARY_PATH` | link with RPATH (`-Xlinker --disable-new-dtags -Xlinker -rpath=…`), see [software.md](software.md#eessi-cvmfssoftwareeessiio) |
@@ -57,8 +57,9 @@ seff ID
 | `QOSMaxJobsPerUserLimit` | per-user QOS job cap (e.g. Koios `max10r`) | wait; use a job array with `%N` throttling |
 | `QOSMaxCpuPerUserLimit`, `AssocGrp*` | user's / group's CPU or GPU cap reached | wait; ask the admin if a higher limit is justified |
 | `ReqNodeNotAvail`, `PartitionDown`, `PartitionNodeLimit` | wrong partition (Phoebe `gpu`, `gpu_int`, `project001`) or nodes down / in maintenance | use `rocky10` / `cpu`; check `sinfo -R` |
-| `AccountNotAllowed`, `InvalidAccount` (submit error) | reserved partition (`project001`, `slurm_test`) | Phoebe `cpu` / `cpu_int`; Koios `rocky10_cpu` / `cpu` |
-| `invalid partition specified: cpu_int` / `rocky10` on Koios | removed 2026-11-02 | `rocky10_cpu` |
+| `AccountNotAllowed`, `InvalidAccount` (submit error) | reserved partition (`project001`, `slurm_test`) | Phoebe `cpu` / `cpu_int`; Koios `cpu` |
+| `EESSI_NO_MODULE_PURGE_ON_INIT: unbound variable`, job fails at once | EESSI init `source`d under `set -u` | `set +u; source /cvmfs/software.eessi.io/versions/<ver>/init/lmod/bash; set -u` |
+| `invalid partition specified: cpu_int` / `rocky10` / `rocky10_cpu` on Koios | removed in 2026-11 | `cpu` |
 | `BadConstraints` / GPU request on Koios | GPUs requested on a CPU partition, or `a100` on Koios | Koios: `--partition=gpu --gres=gpu:p100:N` (N ≤ 2); A100s are on Phoebe `rocky10` |
 | `PartitionTimeLimit` | `--time` > partition max | lower `--time` |
 | `BadConstraints`, `InvalidQOS` | unsatisfiable request (e.g. GPUs on a CPU partition, > 8 GPUs per node) | fix the request |

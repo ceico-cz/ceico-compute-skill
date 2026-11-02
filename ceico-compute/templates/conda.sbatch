@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=<JOBNAME>
-#SBATCH --partition=cpu              # Koios: rocky10_cpu
+#SBATCH --partition=cpu              # same name on Phoebe and Koios
 #SBATCH --time=<HH:MM:SS>
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=<NCPUS>

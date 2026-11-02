@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=<JOBNAME>
-#SBATCH --partition=cpu              # or preempt for restartable tasks (Phoebe); Koios: rocky10_cpu
+#SBATCH --partition=cpu              # or preempt for restartable tasks (Phoebe only)
 #SBATCH --time=<HH:MM:SS>            # per array task
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=2
@@ -9,7 +9,9 @@
 #SBATCH --output=logs/%x-%A_%a.out   # create logs/ before sbatch
 set -euo pipefail
 
-module purge                         # Koios: instead, source /cvmfs/software.eessi.io/versions/2025.06/init/lmod/bash
+module purge
+# Koios (EESSI only): replace the line above with this one; EESSI's init reads unset variables
+#   set +u; source /cvmfs/software.eessi.io/versions/2025.06/init/lmod/bash; set -u
 module load <MODULES>
 
 # one line of params.txt per task, e.g. "--seed 7 --alpha 0.1"

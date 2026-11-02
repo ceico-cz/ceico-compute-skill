@@ -74,7 +74,9 @@ Templates were tested with real jobs:
   have only been syntax-checked.
 - On Koios, before the move to EESSI (with the retired `c9` tree): serial, OpenMP and Apptainer
   (CPU, `docker://` image) on `small_int`, and 2-node MPI (`foss/2024a`, `srun`) on `cpu`;
-  the CPU templates have not been rerun with EESSI on `rocky10_cpu` yet; `gpu_koios_p100` (NVHPC CUDA 12.9,
+  with EESSI 2025.06 on the Rocky 10 nodes (then `rocky10_cpu`, now `cpu`), 2026-11-02: serial (Python, SciPy-bundle), OpenMP and
+  2-node MPI (`foss/2024a`, OpenMPI 5.0.3, `srun`), array and Apptainer (`colab-cpu.sif`);
+  the conda template was not rerun; `gpu_koios_p100` (NVHPC CUDA 12.9,
   `nvcc -arch=sm_60`, cuBLAS, cuFFT) on `gpu`, 2026-10-23. Also checked there on the P100: EESSI
   `CUDA/12.9.1` with the cc70 override, `nvc++ -cuda` and OpenACC; PyTorch `cu126` works,
   `cu128` doesn't (no `sm_60`).

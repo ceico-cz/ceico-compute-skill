@@ -6,7 +6,7 @@ Where software comes from depends on the cluster and node type:
 |---|---|
 | Phoebe: login node, `cpu`, `cpu_int`, `preempt`, `small_int` (Rocky 8) | Phoebe stacks `2023a`–`2026a` + `system` (default `MODULEPATH`), legacy `/sw/phoebe/*` |
 | Phoebe `rocky10` GPU nodes (Rocky 10) | **none by default** → EESSI, NVIDIA HPC SDK, `/usr/local/cuda`, own Python envs, Apptainer |
-| Koios: login and CPU nodes (Rocky 10; Rocky 9 on `cpu` until reinstalled) | **EESSI only** (empty `MODULEPATH` until it is initialised); own installs — see [Koios](#koios) |
+| Koios: login and CPU nodes (Rocky 10; Rocky 9 on `legacy` until reinstalled) | **EESSI only** (empty `MODULEPATH` until it is initialised); own installs — see [Koios](#koios) |
 | Koios `gpu` P100 nodes (Rocky 10) | NVHPC CUDA 12.9, EESSI (CPU builds; CUDA toolkit only with an override), own Python envs, Apptainer — see [gpu.md](gpu.md#koios-p100-nodes-gpu) |
 
 Docs: https://hpc.ceico.cz/software/modules/, https://hpc.ceico.cz/software/eessi/
@@ -108,7 +108,7 @@ Pick one approach and stick to it per project.
 5. PyTorch, TensorFlow, JAX, CuPy are **not** modules: pip/uv wheels (bundle CUDA) — see
    [gpu.md](gpu.md); or the Apptainer images below.
 
-Create environments on the login node (I/O-bound, fine) or in a `cpu_int` job (Koios: `rocky10_cpu`) if the build is heavy.
+Create environments on the login node (I/O-bound, fine) or in a `cpu_int` job (Koios: `cpu`) if the build is heavy.
 
 ## Containers: Apptainer
 
@@ -129,8 +129,8 @@ Create environments on the login node (I/O-bound, fine) or in a `cpu_int` job (K
 
 Koios has **no module tree of its own** any more: the `c9` tree (`/cvmfs/c9.phoebe.lan`) is
 gone with the move to Rocky 10, and none of the Phoebe stacks are mounted. Software comes from
-**EESSI** on the login node and on every compute node (Rocky 10 and the remaining Rocky 9 `cpu`
-nodes); it selects `x86_64/intel/skylake_avx512`. Lmod is installed with an empty `MODULEPATH`,
+**EESSI** on the login node and on every compute node (Rocky 10, and the remaining Rocky 9 nodes in
+`legacy`); it selects `x86_64/intel/skylake_avx512`. Lmod is installed with an empty `MODULEPATH`,
 so `module avail` shows nothing until EESSI is initialised:
 
 ```bash
@@ -139,7 +139,10 @@ module load foss/2024a                     # or 2025a, 2025b; 2023.06 has foss/2
 module load Python/3.12.3-GCCcore-13.3.0 SciPy-bundle/2024.05-gfbf-2024a
 ```
 
-- Start job scripts with the `source` line instead of `module purge` (it purges anyway).
+- Start job scripts with the `source` line instead of `module purge` (it purges anyway). Under
+  `set -u` (the templates use `set -euo pipefail`) wrap it: `set +u; source /cvmfs/software.eessi.io/versions/<ver>/init/lmod/bash; set -u`,
+  or the job dies with `EESSI_NO_MODULE_PURGE_ON_INIT: unbound variable`. `module load` is fine
+  under `-u`.
 - EESSI has `SciPy-bundle`, `mpi4py`, `HDF5`, `GSL`, `CFITSIO`, `GROMACS`, `LAMMPS`, `uv` and far
   more (`module spider NAME`); there is no `Miniforge3`, `Mathematica` or `MATLAB`.
 - Binaries built with EESSI toolchains run on both the Rocky 9 and Rocky 10 nodes.

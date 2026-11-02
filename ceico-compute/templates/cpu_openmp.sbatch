@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=<JOBNAME>
-#SBATCH --partition=cpu              # Koios: rocky10_cpu
+#SBATCH --partition=cpu              # same name on Phoebe and Koios
 #SBATCH --time=<HH:MM:SS>
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=<NCPUS>      # hardware threads on one node: max 128 on Phoebe, 64 on Koios
@@ -8,7 +8,9 @@
 #SBATCH --output=%x-%j.out
 set -euo pipefail
 
-module purge                         # Koios: instead, source /cvmfs/software.eessi.io/versions/2025.06/init/lmod/bash
+module purge
+# Koios (EESSI only): replace the line above with this one; EESSI's init reads unset variables
+#   set +u; source /cvmfs/software.eessi.io/versions/2025.06/init/lmod/bash; set -u
 module load <MODULES>                # e.g. foss/2024a (Phoebe stack; on Koios from EESSI)
 
 # use exactly the allocated CPUs (BLAS libraries and Python pools included)
