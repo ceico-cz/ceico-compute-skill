@@ -140,7 +140,7 @@ module load Python/3.12.3-GCCcore-13.3.0 SciPy-bundle/2024.05-gfbf-2024a
 ```
 
 - Start job scripts with the `source` line instead of `module purge` (it purges anyway). Under
-  `set -u` (the templates use `set -euo pipefail`) wrap it: `set +u; source …/init/lmod/bash; set -u`,
+  `set -u` (the templates use `set -euo pipefail`) wrap it: `set +u; source /cvmfs/software.eessi.io/versions/<ver>/init/lmod/bash; set -u`,
   or the job dies with `EESSI_NO_MODULE_PURGE_ON_INIT: unbound variable`. `module load` is fine
   under `-u`.
 - EESSI has `SciPy-bundle`, `mpi4py`, `HDF5`, `GSL`, `CFITSIO`, `GROMACS`, `LAMMPS`, `uv` and far
